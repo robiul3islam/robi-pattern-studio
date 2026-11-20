@@ -49,3 +49,25 @@ describe('metadata', () => {
 describe('png size', () => {
   it('caps at 8000px', () => { expect(pngSize(1000, 1000, 2)).toEqual({ w: 2000, h: 2000 }); expect(pngSize(4000, 4000, 8).w).toBe(8000); });
 });
+
+import { localSpec, parseSpec, specToProject } from '../../src/engines/ai/gemini';
+describe('ai', () => {
+  it('parses fenced JSON and clamps/filters', () => {
+    const s = parseSpec('```json\n{"categoryId":"seasonal-holiday","elements":["snowflake","nope","pine"],"colors":["#ff0000","bad","#00ff00"],"background":"#fff5e1","mode":"zzz","count":9999,"size":1}\n```');
+    expect(s.elements).toEqual(['snowflake', 'pine']); expect(s.colors).toEqual(['#ff0000', '#00ff00']);
+    expect(s.count).toBe(120); expect(s.size).toBe(30); expect(s.mode).toBeTruthy(); expect(s.background).toBe('#fff5e1');
+  });
+  it('rejects non-JSON', () => { expect(() => parseSpec('sorry')).toThrow(); });
+  it('falls back to category defaults on bad category/elements', () => {
+    const s = parseSpec('{"categoryId":"x","elements":[]}'); expect(s.categoryId).toBe('geometric'); expect(s.elements.length).toBeGreaterThan(0);
+  });
+  it('local spec: christmas prompt picks holiday + hex colours', () => {
+    const s = localSpec('christmas pattern with holly, colors #b91c1c #166534'); expect(s.categoryId).toBe('seasonal-holiday');
+    expect(s.elements).toContain('holly'); expect(s.colors).toEqual(['#b91c1c', '#166534']);
+  });
+  it('spec renders with custom elements and 5 colours', () => {
+    const p = specToProject(localSpec('snowflake and pine'), 5, 'x');
+    expect(p.colors).toHaveLength(5); expect(p.settings.elements).toEqual(expect.arrayContaining(['snowflake', 'pine']));
+    const svg = renderSvg(p); expect(svg).toContain('data-element="snowflake"'); expect(svg).not.toContain('data-element="pumpkin"');
+  });
+});

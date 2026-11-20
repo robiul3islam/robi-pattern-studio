@@ -10,5 +10,5 @@ describe('foundation data', () => {
   it('palettes have valid hex colors', () => {
     for (const p of QUICK_PALETTES) for (const c of p.colors) expect(c).toMatch(/^#[0-9a-f]{6}$/i);
   });
-  it('nav has 13 sidebar items', () => expect(NAV).toHaveLength(13));
+  it('nav has 14 sidebar items', () => expect(NAV).toHaveLength(14));
 });

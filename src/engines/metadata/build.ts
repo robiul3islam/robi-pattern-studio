@@ -19,7 +19,7 @@ export function colorName(hex: string): string {
   return l > 80 ? `pastel ${hue}` : l < 28 ? `dark ${hue}` : hue;
 }
 
-const CAT_KW: Record<string, string[]> = {
+export const CAT_KW: Record<string, string[]> = {
   'botanical-floral': ['floral', 'flowers', 'leaves', 'botanical', 'nature', 'garden'],
   'geometric': ['geometric', 'shapes', 'abstract', 'modern', 'minimal', 'graphic'],
   'abstract-organic': ['abstract', 'organic', 'blob', 'fluid', 'contemporary'],

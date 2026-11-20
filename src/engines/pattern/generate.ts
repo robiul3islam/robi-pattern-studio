@@ -13,13 +13,14 @@ export function periodicDist(ax: number, ay: number, bx: number, by: number, w: 
 export function generateLayout(s: LayoutSettings): PatternLayout {
   const cfg = CATEGORY_CONFIG[s.categoryId];
   if (!cfg) throw new Error(`Unknown category: ${s.categoryId}`);
-  for (const id of cfg.elements) if (!ELEMENTS_BY_ID[id]) throw new Error(`Missing element: ${id}`);
+  const pool = s.elements?.length ? s.elements : cfg.elements;
+  for (const id of pool) if (!ELEMENTS_BY_ID[id]) throw new Error(`Missing element: ${id}`);
   const { w, h } = s;
   const rnd = mulberry32(s.seed);
   let bag: string[] = [];
   let last = '';
   const nextEl = () => {
-    if (!bag.length) { bag = shuffle(cfg.elements, rnd); if (bag.length > 1 && bag[bag.length - 1] === last) bag.reverse(); }
+    if (!bag.length) { bag = shuffle(pool, rnd); if (bag.length > 1 && bag[bag.length - 1] === last) bag.reverse(); }
     last = bag.pop()!;
     return last;
   };
