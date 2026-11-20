@@ -59,7 +59,7 @@ export default function EditorPage({ work, setWork }: { work: Project; setWork: 
           <button className={btn} onClick={() => commit(undefined)} disabled={!work.instances}>Reset edits</button>
         </div>
         <div className="flex gap-2">
-          <select value={addEl} onChange={e => setAddEl(e.target.value)} className={input}>{ELEMENTS.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select>
+          <select value={addEl} onChange={e => setAddEl(e.target.value)} className={input}>{[...(work.customElements ?? []), ...ELEMENTS].map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select>
           <button className={btnPrimary} onClick={add}>Add</button>
         </div>
         {cur ? (

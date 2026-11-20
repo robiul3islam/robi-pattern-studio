@@ -23,6 +23,7 @@ export default function App() {
   const [page, setPage] = useState<PageId>('dashboard');
   const [cat, setCat] = useState('tropical');
   const [work, setWork] = useState<Project>(() => defaultProject('tropical'));
+  const [aiPrompt, setAiPrompt] = useState('');
   const [dark, setDark] = useState(safeGet('theme') !== 'light');
   useEffect(() => { document.documentElement.classList.toggle('dark', dark); safeSet('theme', dark ? 'dark' : 'light'); }, [dark]);
   const item = NAV.find(n => n.id === page)!;
@@ -39,7 +40,7 @@ export default function App() {
     : page === 'settings' ? <Settings dark={dark} setDark={setDark} />
     : page === 'generator' ? <GeneratorPage key={work.id + work.colors.join()} categoryId={cat} setCategoryId={setCat} work={work} onWork={setWork} />
     : page === 'categories' ? <CategoriesPage onUse={id => { setCat(id); setWork(defaultProject(id)); setPage('generator'); }} />
-    : page === 'prompt' ? <PromptPage key={cat} categoryId={cat} setCategoryId={setCat} />
+    : page === 'prompt' ? <PromptPage key={cat} categoryId={cat} setCategoryId={setCat} onSend={t => { setAiPrompt(t); setPage('ai'); }} />
     : page === 'color' ? <ColorStudio onSend={sendColors} />
     : page === 'editor' ? <EditorPage work={work} setWork={setWork} />
     : page === 'quality' ? <QualityPage work={work} />
@@ -47,7 +48,7 @@ export default function App() {
     : page === 'export' ? <ExportPage work={work} />
     : page === 'projects' ? <ProjectsPage onOpen={open} />
     : page === 'trend' ? <TrendPage onUse={preset} />
-    : page === 'ai' ? <AiPage work={work} setWork={setWork} go={setPage} />
+    : page === 'ai' ? <AiPage key={aiPrompt} initialPrompt={aiPrompt} work={work} setWork={setWork} go={setPage} />
     : page === 'batch' ? <BatchPage work={work} />
     : <Placeholder title={item.label} phase={item.phase} />;
 

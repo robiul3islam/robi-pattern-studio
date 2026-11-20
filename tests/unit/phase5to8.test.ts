@@ -71,3 +71,27 @@ describe('ai', () => {
     const svg = renderSvg(p); expect(svg).toContain('data-element="snowflake"'); expect(svg).not.toContain('data-element="pumpkin"');
   });
 });
+
+import { buildMotif } from '../../src/engines/ai/motif';
+import { forceHex } from '../../src/engines/ai/gemini';
+import { validateSeamless } from '../../src/engines/seamless/validate';
+describe('ai motifs', () => {
+  const tiger = { name: 'Tiger Head', parts: [
+    { d: 'M200,300 C100,300 80,200 150,150 C180,120 220,120 250,150 C320,200 300,300 200,300 Z', role: 'primary' },
+    { d: 'M150,200 L170,230 L190,200 Z', role: 'secondary', mirror: true }, { d: 'M200,220 V260', role: 'line' } ] };
+  it('normalises into +-50 box', () => {
+    const e = buildMotif(tiger)!; expect(e).toBeTruthy(); expect(e.parts.length).toBe(4);
+    const p = defaultProject('geometric'); p.customElements = [e]; p.settings = { ...p.settings, elements: [e.id] };
+    const svg = renderSvg(p); expect(svg).toContain(`data-element="${e.id}"`);
+    expect(validateSeamless(svg, 1000, 1000).ok).toBe(true);
+  });
+  it('rejects unsafe or broken paths', () => {
+    expect(buildMotif({ name: 'x', parts: [{ d: 'M0,0 L10,10" onload="x', role: 'primary' }] })).toBeNull();
+    expect(buildMotif({ name: 'x', parts: [{ d: 'M0,0 L0,0 Z', role: 'primary' }] })).toBeNull();
+    expect(buildMotif({ name: 'x', parts: [{ d: 'M0,0 L10,10', role: 'line' }] })).toBeNull();
+  });
+  it('prompt hex colours override model colours', () => {
+    const s = forceHex('use #ff0000 #00ff00 #0000ff #ffff00 on #123456', { ...localSpec('x'), colors: ['#111111'], background: '#fff' });
+    expect(s.colors).toEqual(['#ff0000', '#00ff00', '#0000ff', '#ffff00']); expect(s.background).toBe('#123456');
+  });
+});

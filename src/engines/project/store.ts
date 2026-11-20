@@ -1,4 +1,5 @@
-import type { Instance, LayoutSettings, PatternLayout } from '../../types';
+import type { Instance, LayoutSettings, PatternLayout, VecElement } from '../../types';
+import { ELEMENTS_BY_ID } from '../../data/elements';
 import { CATEGORY_CONFIG } from '../../data/categoryConfig';
 import { QUICK_PALETTES } from '../../data/palettes';
 import { generateLayout } from '../pattern/generate';
@@ -6,8 +7,11 @@ import { buildSvg } from '../vector/buildSvg';
 
 export interface Project {
   id: string; name: string; settings: LayoutSettings; colors: string[]; bg: string; outline: string;
-  instances?: Instance[]; createdAt: number;
+  instances?: Instance[]; createdAt: number; customElements?: VecElement[];
 }
+
+/** AI-drawn motifs live only in the project: register them so the engine can find them by id. */
+export function registerCustom(els?: VecElement[]) { for (const e of els ?? []) ELEMENTS_BY_ID[e.id] = e; }
 
 export const safeGet = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 export const safeSet = (k: string, v: string) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };
@@ -23,7 +27,7 @@ const isProject = (p: unknown): p is Project => {
   const o = p as Project;
   return !!o && typeof o.id === 'string' && !!o.settings && Array.isArray(o.colors) && typeof o.bg === 'string';
 };
-export const loadProjects = (): Project[] => readJson<unknown[]>(PK, []).filter(isProject);
+export const loadProjects = (): Project[] => { const l = readJson<unknown[]>(PK, []).filter(isProject); l.forEach(p => registerCustom(p.customElements)); return l; };
 export const saveProjects = (l: Project[]) => safeSet(PK, JSON.stringify(l));
 export function upsertProject(p: Project): boolean {
   const l = loadProjects(); const i = l.findIndex(x => x.id === p.id);
@@ -32,7 +36,7 @@ export function upsertProject(p: Project): boolean {
 }
 export const deleteProject = (id: string) => saveProjects(loadProjects().filter(p => p.id !== id));
 export const parseProjects = (text: string): Project[] => {
-  const v = JSON.parse(text); return (Array.isArray(v) ? v : [v]).filter(isProject);
+  const v = JSON.parse(text); const l = (Array.isArray(v) ? v : [v]).filter(isProject); l.forEach(p => registerCustom(p.customElements)); return l;
 };
 
 export interface Stats { generated: number; exports: number; }
@@ -64,8 +68,10 @@ export function setCustomPalette(colors: string[]): string {
   return 'custom';
 }
 
-export const layoutOf = (p: Project): PatternLayout =>
-  p.instances ? { settings: p.settings, instances: p.instances, w: p.settings.w, h: p.settings.h } : generateLayout(p.settings);
+export const layoutOf = (p: Project): PatternLayout => {
+  registerCustom(p.customElements);
+  return p.instances ? { settings: p.settings, instances: p.instances, w: p.settings.w, h: p.settings.h } : generateLayout(p.settings);
+};
 export const renderSvg = (p: Project, transparent = false): string =>
   buildSvg(layoutOf(p), { colors: p.colors, bg: p.bg, outline: p.outline, transparent }, `${p.name}`);
 

@@ -7,7 +7,7 @@ import { generateLayout } from '../../engines/pattern/generate';
 import { buildSvg, buildTiledPreview } from '../../engines/vector/buildSvg';
 import { validateSeamless } from '../../engines/seamless/validate';
 import ValidationPanel from '../seamless-engine/ValidationPanel';
-import { bump, defaultSettings, newId, setCustomPalette, upsertProject, type Project } from '../../engines/project/store';
+import { registerCustom, bump, defaultSettings, newId, setCustomPalette, upsertProject, type Project } from '../../engines/project/store';
 import type { LayoutSettings, PatternMode, Symmetry } from '../../types';
 
 const MODES: PatternMode[] = ['grid', 'scattered', 'organic', 'structured', 'dense', 'minimal', 'mirror', 'halfdrop', 'brick'];
@@ -29,7 +29,7 @@ function Slider({ label, v, min, max, step = 1, on }: { label: string; v: number
 }
 
 export default function GeneratorPage({ categoryId, setCategoryId, work, onWork }: { categoryId: string; setCategoryId: (id: string) => void; work: Project; onWork: (p: Project) => void }) {
-  const [s, setS] = useState<LayoutSettings>(() => work.settings);
+  const [s, setS] = useState<LayoutSettings>(() => { registerCustom(work.customElements); return work.settings; });
   const [paletteId, setPaletteId] = useState(() => QUICK_PALETTES.find(p => p.colors.join() === work.colors.join())?.id ?? setCustomPalette(work.colors));
   const [bg, setBg] = useState(work.bg);
   const [outline, setOutline] = useState(work.outline);
@@ -45,12 +45,12 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
   useEffect(() => {
     const same = JSON.stringify([work.settings, work.colors, work.bg, work.outline]) === JSON.stringify([s, palette.colors, bg, outline]);
     if (same) return;
-    onWork({ id: work.id, name: work.name, settings: s, colors: palette.colors, bg, outline, createdAt: work.createdAt });
+    onWork({ id: work.id, name: work.name, settings: s, colors: palette.colors, bg, outline, createdAt: work.createdAt, customElements: work.customElements });
     setSaved('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s, palette, bg, outline]);
   const save = () => {
-    const ok = upsertProject({ id: work.id || newId(), name: work.name, settings: s, colors: palette.colors, bg, outline, instances: undefined, createdAt: work.createdAt });
+    const ok = upsertProject({ id: work.id || newId(), name: work.name, settings: s, colors: palette.colors, bg, outline, instances: undefined, createdAt: work.createdAt, customElements: work.customElements });
     setSaved(ok ? 'Saved' : 'Save failed: storage unavailable');
   };
 

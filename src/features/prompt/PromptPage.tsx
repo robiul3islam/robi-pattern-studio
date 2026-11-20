@@ -5,7 +5,7 @@ import { CATEGORY_CONFIG } from '../../data/categoryConfig';
 import { QUICK_PALETTES } from '../../data/palettes';
 import { MOODS, PLATFORMS, STYLES, buildPrompt, defaultInput, type Platform, type PromptInput } from '../../engines/prompt/build';
 
-export default function PromptPage({ categoryId, setCategoryId }: { categoryId: string; setCategoryId: (id: string) => void }) {
+export default function PromptPage({ categoryId, setCategoryId, onSend }: { categoryId: string; setCategoryId: (id: string) => void; onSend: (prompt: string) => void }) {
   const [inp, setInp] = useState<PromptInput>(() => defaultInput(categoryId));
   const [msg, setMsg] = useState('');
   const set = (p: Partial<PromptInput>) => setInp(v => ({ ...v, ...p }));
@@ -62,7 +62,7 @@ export default function PromptPage({ categoryId, setCategoryId }: { categoryId: 
       <section className={`${card} space-y-4`}>
         <div>
           <div className="mb-1 flex items-center justify-between"><h3 className="font-semibold">Prompt</h3>
-            <button onClick={() => copy(out.prompt)} className="flex items-center gap-1 text-xs"><Copy size={14} /> Copy {msg}</button></div>
+            <span className="flex gap-3"><button onClick={() => onSend(out.prompt)} className="text-xs underline">Send to AI Generate</button><button onClick={() => copy(out.prompt)} className="flex items-center gap-1 text-xs"><Copy size={14} /> Copy {msg}</button></span></div>
           <textarea readOnly value={out.prompt} rows={8} className="w-full rounded border p-2 text-sm dark:bg-slate-800" aria-label="Generated prompt" />
         </div>
         {out.negative && (
