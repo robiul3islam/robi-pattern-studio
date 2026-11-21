@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { askGemini, localSpec, MODELS, specToProject, type Spec, type Turn } from '../../engines/ai/gemini';
-import { bump, layoutOf, newId, renderSvg, safeGet, safeSet, upsertProject, type Project } from '../../engines/project/store';
+import BgPanel from '../bgpanel';
+import { bump, layoutOf, newId, renderOpts, renderSvg, safeGet, safeSet, upsertProject, type Project } from '../../engines/project/store';
 import { buildTiledPreview, elementThumb } from '../../engines/vector/buildSvg';
 import type { PageId } from '../../types';
 import { btn, btnPrimary, card, Field, input, Thumb } from '../shared';
@@ -36,7 +37,7 @@ export default function AiPage({ work, setWork, go, initialPrompt }: { work: Pro
     im.src = url;
   };
   const preview = useMemo(() => {
-    try { return buildTiledPreview(layoutOf(work), { colors: work.colors, bg: work.bg, outline: work.outline }, rep, false); } catch { return ''; }
+    try { return buildTiledPreview(layoutOf(work), renderOpts(work), rep, false); } catch { return ''; }
   }, [work, rep]);
 
   const run = async (text: string, history: Turn[]) => {
@@ -51,7 +52,7 @@ export default function AiPage({ work, setWork, go, initialPrompt }: { work: Pro
       } else { sp = localSpec(prompt); setHist([]); }
       const p = specToProject(sp, Math.floor(Math.random() * 1e9), `ai-${sp.categoryId}`);
       renderSvg(p); // fail early if it cannot render
-      setSpec(sp); setWork({ ...p, id: newId() }); bump('generated');
+      setSpec(sp); setWork({ ...p, id: newId(), bgPattern: work.bgPattern }); bump('generated');
       setMsg(wantAi ? `Done with ${used}. ${sp.customElements.length} motifs drawn.` : 'No key: keyword match only, library shapes. Add a Gemini key for exact results.');
     } catch (e) { setErr((e as Error).message); }
     setBusy(false);
@@ -113,6 +114,7 @@ export default function AiPage({ work, setWork, go, initialPrompt }: { work: Pro
           <button className={btn} onClick={() => go('export')}>Export</button>
           <button className={btn} onClick={() => setMsg(upsertProject(work) ? 'Saved to My Projects.' : 'Save failed: storage unavailable.')}>Save project</button>
         </div>
+        <section className={card}><BgPanel value={work.bgPattern} onChange={bgPattern => setWork({ ...work, bgPattern })} base={work.colors[0]} /></section>
         {spec && (
           <section className={`${card} space-y-2 text-sm`}>
             <h3 className="font-semibold">What the AI understood</h3>

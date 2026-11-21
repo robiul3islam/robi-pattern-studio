@@ -13,6 +13,7 @@ const mirror = (d: string, role: Role): Part[] => [P(d, role), P(d, role, { tran
 const LEAF = 'M0,0C10,-10 26,-10 34,0C26,10 10,10 0,0Z';
 const SMALL = 'M0,0C8,-8 20,-8 26,0C20,8 8,8 0,0Z';
 const HEART = 'M0,40C-50,6 -40,-34 -16,-34C-6,-34 0,-26 0,-20C0,-26 6,-34 16,-34C40,-34 50,6 0,40Z';
+const LN = (d: string, w = 1, extra: Partial<Part> = {}): Part => P(d, 'line', { w, ...extra });
 const SPIKES = 'M-5,-30L0,-48L5,-30Z';
 
 const list: Array<[string, string, Part[]]> = [
@@ -104,6 +105,30 @@ const list: Array<[string, string, Part[]]> = [
   ['dot', 'Dot', [P(circ(10))]],
   ['sun', 'Simple Sun', [P(circ(20)), ...rot('M0,-30V-46', 'line', ring(8), 3)]],
   ['arch', 'Arch', [P('M-30,40V0A30,30 0 0,1 30,0V40Z')]],
+  ['la-leaf', 'Line Leaf', [LN('M0,46C-26,24 -26,-24 0,-46C26,-24 26,24 0,46Z'), LN('M0,46V-34', 0.8), ...[22, 6, -10, -26].flatMap(y => [LN(`M0,${y}L-13,${y - 12}`, 0.7), LN(`M0,${y}L13,${y - 12}`, 0.7)])]],
+  ['la-sprig', 'Line Sprig', [LN('M0,50V-30'), ...[34, 14, -6, -26].flatMap(y => [P(SMALL, 'line', { w: 0.9, transform: `translate(0 ${y}) rotate(-38)` }), P(SMALL, 'line', { w: 0.9, transform: `translate(0 ${y}) rotate(-142)` })]), P(SMALL, 'line', { w: 0.9, transform: 'translate(0 -28) rotate(-90)' })]],
+  ['la-flower', 'Line Flower', [...rot('M0,-6C-14,-16 -14,-34 0,-44C14,-34 14,-16 0,-6Z', 'line', ring(6), 1), LN(circ(5))]],
+  ['la-wave', 'Line Waves', [-24, 0, 24].map(y => LN('M-46,0Q-34,-14 -23,0T0,0T23,0T46,0', 1, { transform: `translate(0 ${y})` }))],
+  ['la-circles', 'Line Rings', [44, 32, 20, 8].map(r => LN(circ(r)))],
+  ['la-sunburst', 'Line Sunburst', [...rot('M0,-26V-46', 'line', ring(16), 1), LN(circ(18)), LN(circ(8))]],
+  ['la-moon', 'Line Moon', [LN('M10,-44A44,44 0 1,0 10,44A60,60 0 0,1 10,-44Z', 1.2), LN(star(4, 9, 2), 1, { transform: 'translate(26 -14)' }), LN(star(4, 6, 1.5), 1, { transform: 'translate(32 14)' })]],
+  ['la-fan', 'Line Fan', [...[44, 30, 16].map(r => LN(`M${-r},40A${r},${r} 0 0,1 ${r},40`)), ...[-60, -30, 0, 30, 60].map(a => LN('M0,-8V-44', 1, { transform: `translate(0 40) rotate(${a})` }))]],
+  ['la-diamond', 'Line Diamond', [LN('M0,-46L40,0L0,46L-40,0Z'), LN('M0,-30L26,0L0,30L-26,0Z'), LN('M0,-14L12,0L0,14L-12,0Z')]],
+  ['la-hexagon', 'Line Hexagon', [LN(poly(6, 44)), LN(poly(6, 30)), LN(poly(6, 16))]],
+  ['la-star8', 'Line Star', [LN(star(8, 46, 24)), LN(circ(8))]],
+  ['la-spiral', 'Line Spiral', [LN('M0,0C0,-6 8,-6 8,0C8,12 -12,12 -12,-2C-12,-22 22,-22 22,2C22,34 -30,34 -30,-6C-30,-44 40,-44 40,6', 1.2)]],
+  ['la-arch', 'Line Arches', [LN('M-40,46V0A40,40 0 0,1 40,0V46'), LN('M-28,46V0A28,28 0 0,1 28,0V46'), LN('M-16,46V0A16,16 0 0,1 16,0V46')]],
+  ['lux-quatrefoil', 'Quatrefoil', [P(circ(18, -15, 0) + circ(18, 15, 0) + circ(18, 0, -15) + circ(18, 0, 15)), P(circ(7), 'accent')]],
+  ['lux-ogee', 'Ogee', [LN('M0,-46C28,-30 40,-14 40,6C40,28 20,40 0,46C-20,40 -40,28 -40,6C-40,-14 -28,-30 0,-46Z', 1.6), LN('M0,-46C28,-30 40,-14 40,6C40,28 20,40 0,46C-20,40 -40,28 -40,6C-40,-14 -28,-30 0,-46Z', 1, { transform: 'scale(0.62)' }), P(circ(5, 0, 2), 'accent')]],
+  ['lux-scroll', 'Scroll', [LN('M0,34C-28,34 -42,6 -22,-14C-8,-28 12,-16 4,-4C-2,4 -10,0 -8,-6', 1.6), LN('M0,34C-28,34 -42,6 -22,-14C-8,-28 12,-16 4,-4C-2,4 -10,0 -8,-6', 1.6, { transform: 'scale(-1 1)' }), P(circ(4, 0, 38), 'accent')]],
+  ['lux-medallion', 'Medallion', [LN(circ(44), 1.5), LN(circ(36)), ...rot('M0,-18C-6,-24 -6,-30 0,-34C6,-30 6,-24 0,-18Z', 'secondary', ring(8)), P(circ(8), 'accent')]],
+  ['lux-greekkey', 'Greek Key', [LN('M-44,40V-40H40V24H-24V-24H24V8H-8', 1.8)]],
+  ['lux-fleur', 'Fleur', [P('M0,-46C14,-30 14,-10 0,6C-14,-10 -14,-30 0,-46Z'), ...mirror('M-2,6C-20,-6 -40,-8 -44,8C-40,22 -22,20 -10,14Z', 'secondary'), P('M-18,20H18V28H-18Z', 'accent'), P('M0,28C-4,38 -8,42 -12,46C-4,44 0,46 0,46C4,44 8,42 12,46C8,42 4,38 0,28Z')]],
+  ['lux-laurel', 'Laurel', [LN('M4,46C30,34 36,-6 18,-42', 1.4), LN('M4,46C30,34 36,-6 18,-42', 1.4, { transform: 'scale(-1 1)' }), ...[P(SMALL, 'primary', { transform: 'translate(12.5 40.5) rotate(-89)' }), P(SMALL, 'primary', { transform: 'translate(12.5 40.5) rotate(7)' }), P(SMALL, 'primary', { transform: 'translate(21.9 28.5) rotate(-110)' }), P(SMALL, 'primary', { transform: 'translate(21.9 28.5) rotate(-14)' }), P(SMALL, 'primary', { transform: 'translate(27.2 12.9) rotate(-127)' }), P(SMALL, 'primary', { transform: 'translate(27.2 12.9) rotate(-31)' }), P(SMALL, 'primary', { transform: 'translate(28.2 -5.2) rotate(-142)' }), P(SMALL, 'primary', { transform: 'translate(28.2 -5.2) rotate(-46)' }), P(SMALL, 'primary', { transform: 'translate(24.8 -24.5) rotate(-154)' }), P(SMALL, 'primary', { transform: 'translate(24.8 -24.5) rotate(-58)' })].flatMap(p => [p, { ...p, transform: `scale(-1 1) ${p.transform}` }])]],
+  ['lux-pearl', 'Pearl Ring', [...ring(12).map(a => P(circ(4, 0, -38), 'primary', { transform: `rotate(${a})` })), LN(circ(24), 0.8), P(circ(8), 'accent')]],
+  ['lux-sunrise', 'Deco Sunrise', [P('M-44,40A44,44 0 0,1 44,40Z'), P('M-30,40A30,30 0 0,1 30,40Z', 'secondary'), P('M-16,40A16,16 0 0,1 16,40Z', 'accent')]],
+  ['lux-sparkle', 'Sparkle', [P(star(4, 46, 6)), P(star(4, 20, 3), 'accent', { transform: 'rotate(45)' })]],
+  ['lux-chevron', 'Chevron Stack', [LN('M-40,-24L0,-4L40,-24', 1.6), LN('M-40,-2L0,18L40,-2', 1.6), LN('M-40,20L0,40L40,20', 1.6)]],
 ];
 
 export const ELEMENTS: VecElement[] = list.map(([id, name, parts]) => ({ id, name, parts }));

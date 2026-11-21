@@ -15,6 +15,7 @@ import ExportPage from './features/export/ExportPage';
 import ProjectsPage from './features/projects/ProjectsPage';
 import TrendPage from './features/trend/TrendPage';
 import AiPage from './features/ai/AiPage';
+import TypoPage from './features/typo/TypoPage';
 import BatchPage from './features/batch/BatchPage';
 import { defaultProject, safeGet, safeSet, setCustomPalette, type Project } from './engines/project/store';
 import type { PageId } from './types';
@@ -49,6 +50,7 @@ export default function App() {
     : page === 'projects' ? <ProjectsPage onOpen={open} />
     : page === 'trend' ? <TrendPage onUse={preset} />
     : page === 'ai' ? <AiPage key={aiPrompt} initialPrompt={aiPrompt} work={work} setWork={setWork} go={setPage} />
+    : page === 'typo' ? <TypoPage work={work} setWork={setWork} go={setPage} />
     : page === 'batch' ? <BatchPage work={work} />
     : <Placeholder title={item.label} phase={item.phase} />;
 

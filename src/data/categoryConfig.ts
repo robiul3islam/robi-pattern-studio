@@ -23,4 +23,7 @@ export const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   'memphis': C(['squiggle', 'zigzag', 'dots', 'triangle', 'cross', 'halfcircle', 'ring', 'circle'], 'vibrant-1', 'scattered', { size: 75, count: 34, rotation: 180 }),
   'tropical': C(['monstera', 'palm', 'hibiscus', 'butterfly', 'flower5', 'leaf', 'fern'], 'tropical-1', 'organic', { size: 110, count: 28, rotation: 180 }),
   'minimal-scandinavian': C(['branch', 'dot', 'sun', 'arch', 'leaf', 'moon'], 'scandi-1', 'minimal', { size: 80, count: 34, rotation: 20, randomness: 25 }),
+  'line-art': C(['la-leaf', 'la-sprig', 'la-flower', 'la-wave', 'la-circles', 'la-moon', 'la-star8', 'la-fan'], 'ink-line', 'brick', { size: 100, count: 30, rotation: 20 }),
+  'art-deco-luxury': C(['lux-quatrefoil', 'lux-ogee', 'lux-medallion', 'lux-fleur', 'lux-sunrise', 'lux-sparkle', 'la-fan', 'la-diamond', 'lux-greekkey'], 'gold-1', 'halfdrop', { size: 100, count: 28, rotation: 0, randomness: 15 }),
+  'typography': C(['lux-sparkle', 'dot', 'la-star8', 'la-diamond'], 'gold-1', 'halfdrop', { size: 80, count: 30, rotation: 0 }),
 };

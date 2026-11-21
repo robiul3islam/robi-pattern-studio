@@ -79,6 +79,11 @@ export default function EditorPage({ work, setWork }: { work: Project; setWork: 
                 </Field>
               ))}
             </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">All copies of this motif:
+              <button className={btn} onClick={() => commit(layout.instances.map(i => (i.el === cur.el ? { ...i, s: +(i.s * 0.9).toFixed(3) } : i)))}>-10%</button>
+              <button className={btn} onClick={() => commit(layout.instances.map(i => (i.el === cur.el ? { ...i, s: +(i.s * 1.1).toFixed(3) } : i)))}>+10%</button>
+              <button className={btn} onClick={() => { commit(layout.instances.filter(i => i.el !== cur.el)); setSel(null); }}>Delete all</button>
+            </div>
             <div className="flex gap-2">
               <button className={btn} onClick={dup}><Copy size={14} className="inline" /> Duplicate</button>
               <button className={btn} onClick={del}><Trash2 size={14} className="inline" /> Delete</button>

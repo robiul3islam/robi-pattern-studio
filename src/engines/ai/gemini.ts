@@ -95,7 +95,7 @@ export function specToProject(spec: Spec, seed: number, name: string): Project {
   for (let i = spec.colors.length; spec.colors.length && i < 4; i++) colors[i] = spec.colors[i % spec.colors.length];
   colors[4] = spec.background || base.bg;
   const { count, size, density, spacing, rotation, randomness, mode, symmetry, elements, elementSpec } = spec;
-  return { ...base, name: spec.name || name, colors, bg: colors[4], customElements: spec.customElements, settings: { ...base.settings, count, size, density, spacing, rotation, randomness, mode, symmetry, elements, elementSpec: Object.keys(elementSpec).length ? elementSpec : undefined } };
+  return { ...base, name: spec.name || name, colors, bg: colors[4], customElements: spec.customElements, settings: { ...base.settings, count: Object.keys(elementSpec).length ? 30 : count, size: Object.keys(elementSpec).length ? 100 : size, density, spacing, rotation, randomness, mode, symmetry, elements, elementSpec: Object.keys(elementSpec).length ? elementSpec : undefined } };
 }
 
 export interface Turn { role: 'user' | 'model'; text: string; image?: { mime: string; data: string }; }

@@ -2,6 +2,7 @@ import type { NavItem } from '../types';
 export const NAV: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', phase: 1 },
   { id: 'ai', label: 'AI Generate (Prompt)', phase: 9 },
+  { id: 'typo', label: 'Typography Pattern', phase: 9 },
   { id: 'generator', label: 'Pattern Generator', phase: 2 },
   { id: 'prompt', label: 'Prompt Generator', phase: 4 },
   { id: 'categories', label: 'Pattern Categories', phase: 2 },

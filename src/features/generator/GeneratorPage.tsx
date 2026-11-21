@@ -7,7 +7,10 @@ import { generateLayout } from '../../engines/pattern/generate';
 import { buildSvg, buildTiledPreview } from '../../engines/vector/buildSvg';
 import { validateSeamless } from '../../engines/seamless/validate';
 import ValidationPanel from '../seamless-engine/ValidationPanel';
-import { registerCustom, bump, defaultSettings, newId, setCustomPalette, upsertProject, type Project } from '../../engines/project/store';
+import BgPanel from '../bgpanel';
+import { ELEMENTS_BY_ID } from '../../data/elements';
+import type { BgPattern } from '../../types';
+import { LINE_CATS, registerCustom, bump, defaultSettings, newId, setCustomPalette, upsertProject, type Project } from '../../engines/project/store';
 import type { LayoutSettings, PatternMode, Symmetry } from '../../types';
 
 const MODES: PatternMode[] = ['grid', 'scattered', 'organic', 'structured', 'dense', 'minimal', 'mirror', 'halfdrop', 'brick'];
@@ -33,6 +36,7 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
   const [paletteId, setPaletteId] = useState(() => QUICK_PALETTES.find(p => p.colors.join() === work.colors.join())?.id ?? setCustomPalette(work.colors));
   const [bg, setBg] = useState(work.bg);
   const [outline, setOutline] = useState(work.outline);
+  const [bgp, setBgp] = useState<BgPattern | undefined>(work.bgPattern);
   const [saved, setSaved] = useState('');
   const [error, setError] = useState('');
   const [repeat, setRepeat] = useState(1);
@@ -43,14 +47,14 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
 
   // publish the working pattern so Editor, Quality, Metadata, Export and Batch can use it
   useEffect(() => {
-    const same = JSON.stringify([work.settings, work.colors, work.bg, work.outline]) === JSON.stringify([s, palette.colors, bg, outline]);
+    const same = JSON.stringify([work.settings, work.colors, work.bg, work.outline, work.bgPattern]) === JSON.stringify([s, palette.colors, bg, outline, bgp]);
     if (same) return;
-    onWork({ id: work.id, name: work.name, settings: s, colors: palette.colors, bg, outline, createdAt: work.createdAt, customElements: work.customElements });
+    onWork({ id: work.id, name: work.name, settings: s, colors: palette.colors, bg, outline, createdAt: work.createdAt, customElements: work.customElements, bgPattern: bgp });
     setSaved('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s, palette, bg, outline]);
+  }, [s, palette, bg, outline, bgp]);
   const save = () => {
-    const ok = upsertProject({ id: work.id || newId(), name: work.name, settings: s, colors: palette.colors, bg, outline, instances: undefined, createdAt: work.createdAt, customElements: work.customElements });
+    const ok = upsertProject({ id: work.id || newId(), name: work.name, settings: s, colors: palette.colors, bg, outline, instances: undefined, createdAt: work.createdAt, customElements: work.customElements, bgPattern: bgp });
     setSaved(ok ? 'Saved' : 'Save failed: storage unavailable');
   };
 
@@ -59,6 +63,7 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
     setS(o => ({ ...initial(id), seed: o.seed, w: o.w, h: o.h }));
     const pid = CATEGORY_CONFIG[id].palette; setPaletteId(pid);
     setBg(QUICK_PALETTES.find(p => p.id === pid)!.colors[4]);
+    setOutline(LINE_CATS.includes(id) ? QUICK_PALETTES.find(p => p.id === pid)!.colors[0] : '#222222');
   };
   const pickPalette = (id: string) => { setPaletteId(id); setBg(QUICK_PALETTES.find(p => p.id === id)!.colors[4]); };
   const applyStyle = (name: string) => {
@@ -70,15 +75,15 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
   const { layout, err } = useMemo(() => {
     try { return { layout: generateLayout(s), err: '' }; } catch (e) { return { layout: null, err: (e as Error).message }; }
   }, [s]);
-  const svg = useMemo(() => layout ? buildSvg(layout, { colors: palette.colors, bg, outline }, `${s.categoryId} pattern tile`) : '', [layout, palette, bg, outline, s.categoryId]);
+  const svg = useMemo(() => layout ? buildSvg(layout, { colors: palette.colors, bg, outline, bgPattern: bgp }, `${s.categoryId} pattern tile`) : '', [layout, palette, bg, outline, bgp, s.categoryId]);
 
   // validation runs on the real SVG output of the layout (geometry only; colours do not matter)
   const report = useMemo(() => layout ? validateSeamless(buildSvg(layout, { colors: QUICK_PALETTES[0].colors, bg: '#fff', outline: '#000' }), s.w, s.h) : null, [layout, s.w, s.h]);
   const shown = useMemo(() => {
     if (!layout) return '';
-    const o = { colors: palette.colors, bg, outline };
+    const o = { colors: palette.colors, bg, outline, bgPattern: bgp };
     return repeat === 1 ? svg.replace(/width="\d+" height="\d+" viewBox/, 'width="100%" height="100%" viewBox') : buildTiledPreview(layout, o, repeat, seams);
-  }, [layout, svg, repeat, seams, palette, bg, outline]);
+  }, [layout, svg, repeat, seams, palette, bg, outline, bgp]);
 
   const download = () => {
     try {
@@ -117,12 +122,28 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
           <label>Background <input type="color" value={bg} onChange={e => setBg(e.target.value)} className="h-7 w-full cursor-pointer" /></label>
           <label>Outline <input type="color" value={outline} onChange={e => setOutline(e.target.value)} className="h-7 w-full cursor-pointer" /></label>
         </div>
-        <Slider label="Number of elements" v={s.count} min={4} max={200} on={n => set('count', n)} />
-        <Slider label="Element size" v={s.size} min={20} max={220} on={n => set('size', n)} />
+        <Slider label={s.elementSpec ? "Fillers amount" : "Number of elements"} v={s.count} min={4} max={200} on={n => set('count', n)} />
+        <Slider label={s.elementSpec ? "Overall size (all motifs)" : "Element size"} v={s.size} min={20} max={220} on={n => set('size', n)} />
         <Slider label="Density" v={s.density} min={0} max={100} on={n => set('density', n)} />
         <Slider label="Spacing" v={s.spacing} min={0.5} max={2} step={0.05} on={n => set('spacing', n)} />
         <Slider label="Rotation (max °)" v={s.rotation} min={0} max={180} on={n => set('rotation', n)} />
         <Slider label="Randomness" v={s.randomness} min={0} max={100} on={n => set('randomness', n)} />
+        {s.elementSpec && (
+          <div className="space-y-2 rounded-lg border p-2 dark:border-slate-700">
+            <div className="text-xs font-semibold">Motifs (size and how often)</div>
+            {(s.elements ?? []).filter(id => s.elementSpec![id]).map(id => (
+              <div key={id} className="space-y-1">
+                <div className="flex items-center justify-between text-xs"><span>{ELEMENTS_BY_ID[id]?.name ?? id}</span>
+                  <span className="flex items-center gap-1">x
+                    <select className="rounded border bg-transparent px-1 dark:border-slate-700" value={s.elementSpec![id].weight} onChange={e => setS(o => ({ ...o, elementSpec: { ...o.elementSpec!, [id]: { ...o.elementSpec![id], weight: +e.target.value } } }))}>{[1, 2, 3, 4].map(n => <option key={n}>{n}</option>)}</select>
+                    {(s.elements ?? []).length > 1 && <button className="ml-1 underline" onClick={() => setS(o => { const sp = { ...o.elementSpec! }; delete sp[id]; return { ...o, elements: (o.elements ?? []).filter(x => x !== id), elementSpec: sp }; })}>remove</button>}
+                  </span></div>
+                <Slider label={`Size ${s.elementSpec![id].size}%`} v={s.elementSpec![id].size} min={2} max={46} on={n => setS(o => ({ ...o, elementSpec: { ...o.elementSpec!, [id]: { ...o.elementSpec![id], size: n } } }))} />
+              </div>
+            ))}
+          </div>
+        )}
+        <BgPanel value={bgp} onChange={setBgp} base={palette.colors[0]} />
         <div className="grid grid-cols-3 gap-2 text-xs">
           <label>Tile W{num('w', 200, 4000)}</label><label>Tile H{num('h', 200, 4000)}</label><label>Seed{num('seed', 0, 4294967295)}</label>
         </div>

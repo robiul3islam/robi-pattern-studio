@@ -96,7 +96,7 @@ function composed(s: LayoutSettings, pool: string[], rnd: () => number): Instanc
     const sp = spec[id] ?? { size: 5, weight: 2 };
     const b1 = groupBounds(id, 'scale(1)');
     const unit = Math.max(b1.maxX - b1.minX, b1.maxY - b1.minY, 1);
-    const sc = ((sp.size / 100) * w) / unit;
+    const sc = (((sp.size / 100) * w) / unit) * (s.size / 100);
     const b = groupBounds(id, `scale(${sc})`);
     return { id, sc, bw: b.maxX - b.minX, bh: b.maxY - b.minY, weight: Math.max(1, Math.round(sp.weight)), size: sp.size };
   });
@@ -114,43 +114,58 @@ function composed(s: LayoutSettings, pool: string[], rnd: () => number): Instanc
     r: +((rnd() - 0.5) * 2 * s.rotation).toFixed(1), flip: false, c: hero ? [0, 1, 2] : (shuffle([0, 1, 2, 3], rnd).slice(0, 3) as [number, number, number]),
   });
 
-  // 1. hero lattice
+  const spot = (bx: { w: number; h: number }, tries: number, minGap: number) => {
+    let best: { x: number; y: number; gap: number } | null = null;
+    for (let t = 0; t < tries; t++) {
+      const x = rnd() * w, y = rnd() * h;
+      let gap = Infinity;
+      for (const o of placed) {
+        let dx = Math.abs(x - o.x); dx = Math.min(dx, w - dx);
+        let dy = Math.abs(y - o.y); dy = Math.min(dy, h - dy);
+        const g = Math.max(dx - (o.w + bx.w) / 2, dy - (o.h + bx.h) / 2) + (o.hero ? 0.1 * Math.min(bx.w, bx.h) : 0);
+        if (g < gap) gap = g;
+      }
+      if (!best || gap > best.gap) best = { x, y, gap };
+    }
+    return best && best.gap >= minGap ? best : null;
+  };
+
+  // 1. hero motifs: lattice for grid-like modes, evenly spread random spots for the rest
   const avgW = heroes.reduce((a, k) => a + box(k).w, 0) / heroes.length, avgH = heroes.reduce((a, k) => a + box(k).h, 0) / heroes.length;
-  const mode = ['brick', 'halfdrop', 'grid'].includes(s.mode) ? s.mode : 'halfdrop';
-  const cellW = avgW * (1 + 0.35 * s.spacing), cellH = Math.max(avgH, avgW * 0.75) * (1 + 0.35 * s.spacing);
-  const near = (ideal: number, even: boolean) => Math.max(2, even ? Math.round(ideal / 2) * 2 : Math.round(ideal));
-  const cols = near(w / cellW, mode === 'halfdrop'), rows = near(h / cellH, mode === 'brick');
-  const cw = w / cols, ch = h / rows, nextHero = bag(heroes);
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    let x = (c + 0.5) * cw, y = (r + 0.5) * ch;
-    if (mode === 'brick' && r % 2) x += cw / 2;
-    if (mode === 'halfdrop' && c % 2) y += ch / 2;
-    x += (rnd() - 0.5) * cw * rv * 0.3; y += (rnd() - 0.5) * ch * rv * 0.3;
-    const k = nextHero();
-    heroOut.push(mk(k, x, y, true)); placed.push({ x: wrap(x, w), y: wrap(y, h), ...box(k), hero: true });
+  const nextHero = bag(heroes);
+  if (['brick', 'halfdrop', 'grid'].includes(s.mode)) {
+    const mode = s.mode;
+    const cellW = avgW * (1 + 0.35 * s.spacing), cellH = Math.max(avgH, avgW * 0.75) * (1 + 0.35 * s.spacing);
+    const near = (ideal: number, even: boolean) => Math.max(2, even ? Math.round(ideal / 2) * 2 : Math.round(ideal));
+    const cols = near(w / cellW, mode === 'halfdrop'), rows = near(h / cellH, mode === 'brick');
+    const cw = w / cols, ch = h / rows;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      let x = (c + 0.5) * cw, y = (r + 0.5) * ch;
+      if (mode === 'brick' && r % 2) x += cw / 2;
+      if (mode === 'halfdrop' && c % 2) y += ch / 2;
+      x += (rnd() - 0.5) * cw * rv * 0.3; y += (rnd() - 0.5) * ch * rv * 0.3;
+      const k = nextHero();
+      heroOut.push(mk(k, x, y, true)); placed.push({ x: wrap(x, w), y: wrap(y, h), ...box(k), hero: true });
+    }
+  } else {
+    const cov = s.mode === 'dense' ? 0.5 : s.mode === 'minimal' ? 0.18 : 0.32;
+    const nh = Math.max(3, Math.min(60, Math.round((cov * w * h) / (avgW * avgH * s.spacing * s.spacing))));
+    for (let i = 0; i < nh; i++) {
+      const k = nextHero(), bx = box(k), sp = spot(bx, 90, (s.spacing - 1) * 0.1 * w);
+      if (!sp) continue;
+      heroOut.push(mk(k, sp.x, sp.y, true)); placed.push({ x: sp.x, y: sp.y, ...bx, hero: true });
+    }
   }
 
-  // 2. fillers: best-candidate sampling in the gaps (periodic, so the tile stays seamless)
+  // 2. fillers fill the gaps (periodic distances, so the tile stays seamless)
   if (fillers.length) {
     const nextFill = bag(fillers);
-    const target = Math.min(120, Math.round(heroOut.length * (0.8 + s.density / 40)));
+    const target = Math.min(150, Math.round(s.count * (0.25 + s.density / 80)));
     let fails = 0;
     while (out.length < target && fails < 40) {
-      const k = nextFill(), bx = box(k);
-      let best: { x: number; y: number; gap: number } | null = null;
-      for (let t = 0; t < 70; t++) {
-        const x = rnd() * w, y = rnd() * h;
-        let gap = Infinity;
-        for (const o of placed) {
-          let dx = Math.abs(x - o.x); dx = Math.min(dx, w - dx);
-          let dy = Math.abs(y - o.y); dy = Math.min(dy, h - dy);
-          const g = Math.max(dx - (o.w + bx.w) / 2, dy - (o.h + bx.h) / 2) + (o.hero ? 0.1 * Math.min(bx.w, bx.h) : 0);
-          if (g < gap) gap = g;
-        }
-        if (!best || gap > best.gap) best = { x, y, gap };
-      }
-      if (!best || best.gap < 0.02 * w) { fails++; continue; }
-      fails = 0; out.push(mk(k, best.x, best.y, false)); placed.push({ x: best.x, y: best.y, ...bx, hero: false });
+      const k = nextFill(), bx = box(k), sp = spot(bx, 70, 0.02 * w);
+      if (!sp) { fails++; continue; }
+      fails = 0; out.push(mk(k, sp.x, sp.y, false)); placed.push({ x: sp.x, y: sp.y, ...bx, hero: false });
     }
   }
   // fillers first, heroes on top

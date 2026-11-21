@@ -1,4 +1,4 @@
-import type { Instance, LayoutSettings, PatternLayout, VecElement } from '../../types';
+import type { BgPattern, Instance, LayoutSettings, PatternLayout, RenderOptions, VecElement } from '../../types';
 import { ELEMENTS_BY_ID } from '../../data/elements';
 import { CATEGORY_CONFIG } from '../../data/categoryConfig';
 import { QUICK_PALETTES } from '../../data/palettes';
@@ -7,7 +7,7 @@ import { buildSvg } from '../vector/buildSvg';
 
 export interface Project {
   id: string; name: string; settings: LayoutSettings; colors: string[]; bg: string; outline: string;
-  instances?: Instance[]; createdAt: number; customElements?: VecElement[];
+  instances?: Instance[]; createdAt: number; customElements?: VecElement[]; bgPattern?: BgPattern;
 }
 
 /** AI-drawn motifs live only in the project: register them so the engine can find them by id. */
@@ -53,9 +53,10 @@ export function defaultSettings(categoryId: string, seed = 1): LayoutSettings {
   const c = CATEGORY_CONFIG[categoryId];
   return { categoryId, mode: c.mode, count: c.count, size: c.size, density: c.density, spacing: c.spacing, rotation: c.rotation, randomness: c.randomness, symmetry: 'none', w: 1000, h: 1000, seed };
 }
+export const LINE_CATS = ['line-art', 'art-deco-luxury', 'typography'];
 export function defaultProject(categoryId: string, paletteId?: string, seed = 1): Project {
   const pal = QUICK_PALETTES.find(p => p.id === (paletteId ?? CATEGORY_CONFIG[categoryId].palette)) ?? QUICK_PALETTES[0];
-  return { id: newId(), name: `${categoryId} #${seed}`, settings: defaultSettings(categoryId, seed), colors: pal.colors, bg: pal.colors[4], outline: '#222222', createdAt: Date.now() };
+  return { id: newId(), name: `${categoryId} #${seed}`, settings: defaultSettings(categoryId, seed), colors: pal.colors, bg: pal.colors[4], outline: LINE_CATS.includes(categoryId) ? pal.colors[0] : '#222222', createdAt: Date.now() };
 }
 
 /** Registers a user palette (4 pattern colours + background) under id "custom" and returns the id. */
@@ -72,8 +73,8 @@ export const layoutOf = (p: Project): PatternLayout => {
   registerCustom(p.customElements);
   return p.instances ? { settings: p.settings, instances: p.instances, w: p.settings.w, h: p.settings.h } : generateLayout(p.settings);
 };
-export const renderSvg = (p: Project, transparent = false): string =>
-  buildSvg(layoutOf(p), { colors: p.colors, bg: p.bg, outline: p.outline, transparent }, `${p.name}`);
+export const renderOpts = (p: Project, transparent = false): RenderOptions => ({ colors: p.colors, bg: p.bg, outline: p.outline, transparent, bgPattern: p.bgPattern });
+export const renderSvg = (p: Project, transparent = false): string => buildSvg(layoutOf(p), renderOpts(p, transparent), `${p.name}`);
 
 export const variations = (base: Project, n: number): Project[] =>
   Array.from({ length: n }, (_, i) => ({ ...base, id: newId(), instances: undefined, name: `${base.name}-v${i + 1}`, settings: { ...base.settings, seed: base.settings.seed + i + 1 } }));

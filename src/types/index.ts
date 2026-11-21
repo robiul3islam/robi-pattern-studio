@@ -1,6 +1,6 @@
 export interface Category { id: string; name: string; accent: string; }
 export interface Palette { id: string; name: string; group: string; colors: string[]; }
-export type PageId = 'dashboard' | 'generator' | 'prompt' | 'categories' | 'color' | 'editor' | 'projects' | 'trend' | 'quality' | 'metadata' | 'batch' | 'export' | 'ai' | 'settings';
+export type PageId = 'dashboard' | 'generator' | 'prompt' | 'categories' | 'color' | 'editor' | 'projects' | 'trend' | 'quality' | 'metadata' | 'batch' | 'export' | 'ai' | 'typo' | 'settings';
 export interface NavItem { id: PageId; label: string; phase: number; }
 
 export type Role = 'primary' | 'secondary' | 'accent' | 'line';
@@ -17,7 +17,9 @@ export interface LayoutSettings {
 }
 export interface Instance { n: number; el: string; x: number; y: number; s: number; r: number; flip: boolean; c: [number, number, number]; }
 export interface PatternLayout { settings: LayoutSettings; instances: Instance[]; w: number; h: number; }
-export interface RenderOptions { colors: string[]; bg: string; outline: string; transparent?: boolean; }
+export type BgType = 'dots' | 'hexdots' | 'stripes' | 'pinstripe' | 'diagonal' | 'crosshatch' | 'grid' | 'checks' | 'waves' | 'chevron' | 'scales' | 'crosses' | 'diamonds';
+export interface BgPattern { type: BgType; color: string; opacity: number; scale: number; }
+export interface RenderOptions { colors: string[]; bg: string; outline: string; transparent?: boolean; bgPattern?: BgPattern; }
 export interface CategoryConfig {
   elements: string[]; palette: string; mode: PatternMode; size: number; count: number;
   density: number; spacing: number; rotation: number; randomness: number;

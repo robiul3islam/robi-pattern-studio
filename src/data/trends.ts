@@ -11,4 +11,6 @@ export const TRENDS: Trend[] = [
   { id: 't8', name: 'Indigo Heritage', season: 'All year', note: 'Waves and sakura in indigo.', categoryId: 'japanese-oriental', paletteId: 'indigo-1' },
   { id: 't9', name: 'Spring Botanicals', season: 'Spring', note: 'Fresh greens and daisies.', categoryId: 'botanical-floral', paletteId: 'forest-1' },
   { id: 't10', name: 'Fruit Market', season: 'Summer', note: 'Half-drop fruit in bright colours.', categoryId: 'food-fruits', paletteId: 'tropical-1' },
+  { id: 't11', name: 'Gold Art Deco', season: 'All year', note: 'Quatrefoils and sunrises in gold on black.', categoryId: 'art-deco-luxury', paletteId: 'gold-1' },
+  { id: 't12', name: 'Fine Line Botanical', season: 'Spring', note: 'Single-line leaves and sprigs.', categoryId: 'line-art', paletteId: 'ink-line' },
 ];

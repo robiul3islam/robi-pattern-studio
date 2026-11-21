@@ -112,3 +112,38 @@ describe('composed layout', () => {
     expect(renderSvg(p)).toBe(svg);
   });
 });
+
+import { BG_TYPES } from '../../src/engines/vector/bgPattern';
+import { ELEMENTS } from '../../src/data/elements';
+import { groupBounds } from '../../src/engines/geometry/bounds';
+import { typographyProject, cleanWords } from '../../src/engines/typography/build';
+describe('new features', () => {
+  it('every element has finite bounds inside ~+-60', () => {
+    for (const e of ELEMENTS) { const b = groupBounds(e.id, 'scale(1)'); for (const v of [b.minX, b.maxX, b.minY, b.maxY]) { expect(isFinite(v)).toBe(true); expect(Math.abs(v)).toBeLessThan(64); } }
+  });
+  it('line-art and luxury categories render seamlessly', () => {
+    for (const c of ['line-art', 'art-deco-luxury', 'typography']) { const svg = renderSvg(defaultProject(c)); expect(validateSeamless(svg, 1000, 1000).ok).toBe(true); }
+  });
+  it('every background texture renders and keeps the seam valid', () => {
+    for (const t of BG_TYPES) {
+      const p = { ...defaultProject('geometric'), bgPattern: { type: t, color: '#888888', opacity: 0.2, scale: 8 } };
+      const svg = renderSvg(p); expect(svg).toContain('id="bgpattern"'); expect(svg).not.toContain('NaN'); expect(validateSeamless(svg, 1000, 1000).ok).toBe(true);
+    }
+  });
+  it('typography: words become line motifs, seamless', () => {
+    expect(cleanWords('hello, world!? ok')).toEqual(['HELLO', 'WORLD!', 'OK']);
+    for (const mode of ['words', 'letters'] as const) {
+      const p = typographyProject({ text: 'LUXE ATELIER 24', mode, weight: 1.4, size: 30, layout: 'halfdrop', paletteId: 'gold-1', filler: true }, 4);
+      const svg = renderSvg(p); expect(svg).toContain('data-element="ai-'); expect(validateSeamless(svg, 1000, 1000).ok).toBe(true);
+    }
+    expect(() => typographyProject({ text: '???', mode: 'words', weight: 1, size: 30, layout: 'grid', paletteId: 'gold-1', filler: false })).toThrow();
+  });
+  it('AI-style projects respond to the size, count and mode controls', () => {
+    const p = typographyProject({ text: 'AB', mode: 'words', weight: 1, size: 20, layout: 'halfdrop', paletteId: 'gold-1', filler: true }, 2);
+    const at = (o: object) => layoutOf({ ...p, settings: { ...p.settings, ...o } });
+    const big = (o: object) => Math.max(...at(o).instances.map(i => i.s));
+    expect(big({ size: 60 })).toBeLessThan(big({ size: 140 }));
+    expect(at({ count: 10 }).instances.length).toBeLessThan(at({ count: 90 }).instances.length);
+    expect(at({ mode: 'scattered' }).instances.length).toBeGreaterThan(2);
+  });
+});

@@ -38,6 +38,9 @@ export const CAT_KW: Record<string, string[]> = {
   'seasonal-holiday': ['christmas', 'holiday', 'winter', 'seasonal', 'festive'],
   'fashion-textile': ['fashion', 'textile', 'fabric', 'paisley', 'apparel'],
   'memphis': ['memphis', 'eighties', '80s', 'retro', 'colorful', 'trendy'],
+  'line-art': ['line art', 'outline', 'monoline', 'linear', 'minimal', 'continuous line'],
+  'art-deco-luxury': ['art deco', 'luxury', 'gold', 'elegant', 'gatsby', 'ornamental'],
+  'typography': ['typography', 'letters', 'monogram', 'lettering', 'alphabet', 'text'],
   'tropical': ['tropical', 'jungle', 'exotic', 'summer', 'palm', 'monstera'],
   'minimal-scandinavian': ['scandinavian', 'nordic', 'minimal', 'simple', 'neutral', 'calm'],
 };
