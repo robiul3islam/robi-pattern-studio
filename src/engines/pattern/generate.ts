@@ -3,6 +3,7 @@ import { CATEGORY_CONFIG } from '../../data/categoryConfig';
 import { ELEMENTS_BY_ID } from '../../data/elements';
 import { mulberry32, shuffle } from '../../utils/rng';
 import { groupBounds } from '../geometry/bounds';
+import { procDefaults } from '../procedural';
 
 const wrap = (v: number, m: number) => ((v % m) + m) % m;
 export function periodicDist(ax: number, ay: number, bx: number, by: number, w: number, h: number) {
@@ -15,6 +16,10 @@ export function generateLayout(s: LayoutSettings): PatternLayout {
   const cfg = CATEGORY_CONFIG[s.categoryId];
   if (!cfg) throw new Error(`Unknown category: ${s.categoryId}`);
   const pool = s.elements?.length ? s.elements : cfg.elements;
+  if (!pool.length) {
+    const pr = s.proc ?? cfg.procs?.[0];
+    if (pr) return { settings: s.proc ? s : { ...s, proc: pr, pv: procDefaults(pr) }, instances: [], w: s.w, h: s.h };
+  }
   for (const id of pool) if (!ELEMENTS_BY_ID[id]) throw new Error(`Missing element: ${id}`);
   const { w, h } = s;
   const rnd = mulberry32(s.seed);

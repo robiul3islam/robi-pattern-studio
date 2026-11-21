@@ -77,7 +77,7 @@ export function localSpec(prompt: string): Spec {
   const t = prompt.toLowerCase();
   const score = (id: string) => [...(CAT_KW[id] ?? []), ...(CATEGORIES.find(c => c.id === id)?.name.toLowerCase().split(/[^a-z]+/) ?? [])]
     .filter(w => w.length > 2 && t.includes(w)).length;
-  const best = CATEGORIES.map(c => ({ id: c.id, s: score(c.id) })).sort((a, b) => b.s - a.s)[0];
+  const best = CATEGORIES.filter(c => CATEGORY_CONFIG[c.id].elements.length).map(c => ({ id: c.id, s: score(c.id) })).sort((a, b) => b.s - a.s)[0];
   const categoryId = best.s > 0 ? best.id : 'geometric';
   const hit = ELEMENTS.filter(e => t.includes(e.id) || t.includes(e.name.toLowerCase())).map(e => e.id);
   const cfg = CATEGORY_CONFIG[categoryId];

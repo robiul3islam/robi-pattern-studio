@@ -34,7 +34,8 @@ describe('generator', () => {
   it('all categories x all modes produce instances', () => {
     for (const c of CATEGORIES) for (const mode of MODES) {
       const l = generateLayout(base({ categoryId: c.id, mode, symmetry: 'none' }));
-      expect(l.instances.length, `${c.id}/${mode}`).toBeGreaterThan(2);
+      if (!CATEGORY_CONFIG[c.id].elements.length) expect(l.settings.proc, `${c.id}/${mode}`).toBeTruthy();
+      else expect(l.instances.length, `${c.id}/${mode}`).toBeGreaterThan(2);
     }
   });
   it('symmetry modes still produce instances', () => {

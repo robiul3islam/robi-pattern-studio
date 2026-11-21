@@ -41,6 +41,17 @@ export const CAT_KW: Record<string, string[]> = {
   'line-art': ['line art', 'outline', 'monoline', 'linear', 'minimal', 'continuous line'],
   'art-deco-luxury': ['art deco', 'luxury', 'gold', 'elegant', 'gatsby', 'ornamental'],
   'typography': ['typography', 'letters', 'monogram', 'lettering', 'alphabet', 'text'],
+  'damask-classic': ['damask', 'classic', 'ornamental', 'baroque', 'victorian', 'wallpaper'],
+  'halftone-gradient': ['halftone', 'gradient', 'geometric', 'triangles', 'dots', 'fade', 'modern'],
+  'line-waves-weaves': ['wave lines', 'line art', 'flowing lines', 'geometric lines', 'cube', 'weave', 'abstract'],
+  'groovy-swirl-warp': ['groovy', 'swirl', 'psychedelic', 'retro', '70s', 'warp', 'sunburst'],
+  'nordic-knit-fair-isle': ['nordic', 'fair isle', 'knit', 'sweater', 'reindeer', 'christmas', 'winter'],
+  'abstract-shape-set': ['abstract shapes', 'bauhaus', 'geometric elements', 'memphis', 'design elements', 'modern'],
+  'christmas-holly': ['christmas', 'holly', 'berries', 'snowflakes', 'winter', 'festive'],
+  'christmas-pine-forest': ['christmas trees', 'pine', 'forest', 'winter', 'snowflakes', 'holiday'],
+  'christmas-gold-line': ['gold line', 'christmas', 'festive', 'snowflakes', 'holly', 'elegant'],
+  'chinese-new-year-goat': ['chinese new year', 'year of the goat', '2027', 'lunar new year', 'sheep', 'lantern', 'red and gold'],
+  'geometric-holiday-mosaic': ['geometric', 'christmas', 'new year', 'bauhaus', 'mosaic', 'holiday'],
   'tropical': ['tropical', 'jungle', 'exotic', 'summer', 'palm', 'monstera'],
   'minimal-scandinavian': ['scandinavian', 'nordic', 'minimal', 'simple', 'neutral', 'calm'],
 };
@@ -52,7 +63,8 @@ export function buildMetadata(i: { categoryId: string; elementIds: string[]; col
   const lim = SITES[site];
   const cat = CATEGORIES.find(c => c.id === i.categoryId)?.name ?? i.categoryId;
   const catWord = cat.split(/\s*&\s*/)[0].toLowerCase();
-  const names = [...new Set(i.elementIds.map(e => (ELEMENTS_BY_ID[e]?.name ?? e).toLowerCase()))];
+  let names = [...new Set(i.elementIds.map(e => (ELEMENTS_BY_ID[e]?.name ?? e).toLowerCase()))];
+  if (!names.length) names = (CAT_KW[i.categoryId] ?? ['geometric']).slice(0, 4);
   const cols = [...new Set(i.colors.slice(0, 4).map(colorName))];
   const style = i.style ?? 'flat vector';
   const title = clip(`${cap(cols.slice(0, 2).join(' and '))} seamless ${catWord} pattern with ${names.slice(0, 3).join(', ')}`, lim.title);

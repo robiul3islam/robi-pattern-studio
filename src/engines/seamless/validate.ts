@@ -47,6 +47,6 @@ export function validateSeamless(svg: string, w: number, h: number): SeamlessRep
     }
     if (edge) edgeGroups++;
   }
-  if (!gs.length) errors.push('No pattern elements found.');
+  if (!gs.length && !svg.includes('id="procedural"')) errors.push('No pattern elements found.');
   return { ok: errors.length === 0, errors, warnings, groups: gs.length, edgeGroups, checkedCopies: checked };
 }

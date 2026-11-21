@@ -10,7 +10,8 @@ import ValidationPanel from '../seamless-engine/ValidationPanel';
 import BgPanel from '../bgpanel';
 import { ELEMENTS_BY_ID } from '../../data/elements';
 import type { BgPattern } from '../../types';
-import { LINE_CATS, registerCustom, bump, defaultSettings, newId, setCustomPalette, upsertProject, type Project } from '../../engines/project/store';
+import { PROCS, procDefaults } from '../../engines/procedural';
+import { LINE_CATS, paletteFor, registerCustom, bump, defaultSettings, newId, setCustomPalette, upsertProject, type Project } from '../../engines/project/store';
 import type { LayoutSettings, PatternMode, Symmetry } from '../../types';
 
 const MODES: PatternMode[] = ['grid', 'scattered', 'organic', 'structured', 'dense', 'minimal', 'mirror', 'halfdrop', 'brick'];
@@ -44,6 +45,9 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
   const set = <K extends keyof LayoutSettings>(k: K, v: LayoutSettings[K]) => setS(o => ({ ...o, [k]: v }));
   const palette = QUICK_PALETTES.find(p => p.id === paletteId)!;
   void categoryId;
+  const cfg = CATEGORY_CONFIG[s.categoryId];
+  const procOnly = !!s.proc && !cfg.elements.length && !s.elementSpec;
+  const procDef = s.proc ? PROCS[s.proc] : undefined;
 
   // publish the working pattern so Editor, Quality, Metadata, Export and Batch can use it
   useEffect(() => {
@@ -61,9 +65,14 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
   const pickCategory = (id: string) => {
     setCategoryId(id);
     setS(o => ({ ...initial(id), seed: o.seed, w: o.w, h: o.h }));
-    const pid = CATEGORY_CONFIG[id].palette; setPaletteId(pid);
+    const pid = paletteFor(id, CATEGORY_CONFIG[id].procs?.[0]); setPaletteId(pid);
     setBg(QUICK_PALETTES.find(p => p.id === pid)!.colors[4]);
     setOutline(LINE_CATS.includes(id) ? QUICK_PALETTES.find(p => p.id === pid)!.colors[0] : '#222222');
+  };
+  const pickProc = (id: string) => {
+    setS(o => ({ ...o, proc: id, pv: procDefaults(id) }));
+    const pid = cfg.procPalette?.[id];
+    if (pid) { setPaletteId(pid); setBg(QUICK_PALETTES.find(p => p.id === pid)!.colors[4]); }
   };
   const pickPalette = (id: string) => { setPaletteId(id); setBg(QUICK_PALETTES.find(p => p.id === id)!.colors[4]); };
   const applyStyle = (name: string) => {
@@ -103,7 +112,16 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
         <label className="block text-xs">Category
           <select className={sel} value={s.categoryId} onChange={e => pickCategory(e.target.value)}>{CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
         </label>
+        {cfg.procs && procDef && (
+          <div className="space-y-2 rounded-lg border p-2 dark:border-slate-700">
+            <label className="block text-xs font-semibold">Pattern style
+              <select className={sel} value={s.proc} onChange={e => pickProc(e.target.value)}>{cfg.procs.map(id => <option key={id} value={id}>{PROCS[id].name}</option>)}</select>
+            </label>
+            {procDef.params.map(q => <Slider key={q.k} label={q.label} v={s.pv?.[q.k] ?? q.def} min={q.min} max={q.max} step={q.step ?? 1} on={n => setS(o => ({ ...o, pv: { ...(o.pv ?? {}), [q.k]: n } }))} />)}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2">
+          {!procOnly && <>
           <label className="block text-xs">Composition
             <select className={sel} value={s.mode} onChange={e => set('mode', e.target.value as PatternMode)}>{MODES.map(m => <option key={m}>{m}</option>)}</select>
           </label>
@@ -113,6 +131,7 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
           <label className="block text-xs">Symmetry
             <select className={sel} value={s.symmetry} onChange={e => set('symmetry', e.target.value as Symmetry)}>{SYMS.map(m => <option key={m}>{m}</option>)}</select>
           </label>
+          </>}
           <label className="block text-xs">Palette
             <select className={sel} value={paletteId} onChange={e => pickPalette(e.target.value)}>{QUICK_PALETTES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
           </label>
@@ -122,12 +141,14 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
           <label>Background <input type="color" value={bg} onChange={e => setBg(e.target.value)} className="h-7 w-full cursor-pointer" /></label>
           <label>Outline <input type="color" value={outline} onChange={e => setOutline(e.target.value)} className="h-7 w-full cursor-pointer" /></label>
         </div>
+        {!procOnly && <>
         <Slider label={s.elementSpec ? "Fillers amount" : "Number of elements"} v={s.count} min={4} max={200} on={n => set('count', n)} />
         <Slider label={s.elementSpec ? "Overall size (all motifs)" : "Element size"} v={s.size} min={20} max={220} on={n => set('size', n)} />
         <Slider label="Density" v={s.density} min={0} max={100} on={n => set('density', n)} />
         <Slider label="Spacing" v={s.spacing} min={0.5} max={2} step={0.05} on={n => set('spacing', n)} />
         <Slider label="Rotation (max °)" v={s.rotation} min={0} max={180} on={n => set('rotation', n)} />
         <Slider label="Randomness" v={s.randomness} min={0} max={100} on={n => set('randomness', n)} />
+        </>}
         {s.elementSpec && (
           <div className="space-y-2 rounded-lg border p-2 dark:border-slate-700">
             <div className="text-xs font-semibold">Motifs (size and how often)</div>
@@ -167,7 +188,7 @@ export default function GeneratorPage({ categoryId, setCategoryId, work, onWork 
         <div className="mx-auto w-full overflow-hidden rounded-xl border bg-white dark:border-slate-700" style={{ aspectRatio: `${s.w} / ${s.h}`, maxWidth: `min(100%, ${(78 * s.w) / s.h}vh)` }}
           dangerouslySetInnerHTML={{ __html: shown }} />
         <ValidationPanel report={report} />
-        <p className="text-xs text-slate-500">{layout ? `${layout.instances.length} elements · seed ${s.seed} · same seed + settings = same pattern. Colour changes keep the layout.` : ''}</p>
+        <p className="text-xs text-slate-500">{layout ? `${procOnly ? 'procedural pattern' : layout.instances.length + ' elements'} · seed ${s.seed} · same seed + settings = same pattern. Colour changes keep the layout.` : ''}</p>
       </div>
     </div>
   );

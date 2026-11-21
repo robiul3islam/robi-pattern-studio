@@ -1,4 +1,5 @@
 import type { Part, Role, VecElement } from '../types';
+import { NEW } from './elementsNew';
 
 const f = (n: number) => +n.toFixed(1);
 const circ = (r: number, cx = 0, cy = 0) => `M${cx - r},${cy}a${r},${r} 0 1,0 ${2 * r},0a${r},${r} 0 1,0 ${-2 * r},0Z`;
@@ -131,5 +132,6 @@ const list: Array<[string, string, Part[]]> = [
   ['lux-chevron', 'Chevron Stack', [LN('M-40,-24L0,-4L40,-24', 1.6), LN('M-40,-2L0,18L40,-2', 1.6), LN('M-40,20L0,40L40,20', 1.6)]],
 ];
 
+list.push(...NEW);
 export const ELEMENTS: VecElement[] = list.map(([id, name, parts]) => ({ id, name, parts }));
 export const ELEMENTS_BY_ID: Record<string, VecElement> = Object.fromEntries(ELEMENTS.map(e => [e.id, e]));

@@ -4,6 +4,7 @@ import { CATEGORY_CONFIG } from '../../data/categoryConfig';
 import { QUICK_PALETTES } from '../../data/palettes';
 import { generateLayout } from '../pattern/generate';
 import { buildSvg } from '../vector/buildSvg';
+import { procDefaults } from '../procedural';
 
 export interface Project {
   id: string; name: string; settings: LayoutSettings; colors: string[]; bg: string; outline: string;
@@ -51,11 +52,13 @@ export function logExport(name: string, fmt: string) {
 
 export function defaultSettings(categoryId: string, seed = 1): LayoutSettings {
   const c = CATEGORY_CONFIG[categoryId];
-  return { categoryId, mode: c.mode, count: c.count, size: c.size, density: c.density, spacing: c.spacing, rotation: c.rotation, randomness: c.randomness, symmetry: 'none', w: 1000, h: 1000, seed };
+  return { categoryId, mode: c.mode, count: c.count, size: c.size, density: c.density, spacing: c.spacing, rotation: c.rotation, randomness: c.randomness, symmetry: 'none', w: 1000, h: 1000, seed, ...(c.spec ? { elements: Object.keys(c.spec), elementSpec: structuredClone(c.spec) } : {}), ...(c.procs ? { proc: c.procs[0], pv: procDefaults(c.procs[0]) } : {}) };
 }
-export const LINE_CATS = ['line-art', 'art-deco-luxury', 'typography'];
+export const LINE_CATS = ['line-art', 'art-deco-luxury', 'typography', 'christmas-gold-line', 'chinese-new-year-goat'];
+/** Palette that suits a category (and, for procedural categories, the chosen style). */
+export const paletteFor = (categoryId: string, proc?: string) => { const c = CATEGORY_CONFIG[categoryId]; return (proc && c.procPalette?.[proc]) || c.palette; };
 export function defaultProject(categoryId: string, paletteId?: string, seed = 1): Project {
-  const pal = QUICK_PALETTES.find(p => p.id === (paletteId ?? CATEGORY_CONFIG[categoryId].palette)) ?? QUICK_PALETTES[0];
+  const pal = QUICK_PALETTES.find(p => p.id === (paletteId ?? paletteFor(categoryId, CATEGORY_CONFIG[categoryId].procs?.[0]))) ?? QUICK_PALETTES[0];
   return { id: newId(), name: `${categoryId} #${seed}`, settings: defaultSettings(categoryId, seed), colors: pal.colors, bg: pal.colors[4], outline: LINE_CATS.includes(categoryId) ? pal.colors[0] : '#222222', createdAt: Date.now() };
 }
 

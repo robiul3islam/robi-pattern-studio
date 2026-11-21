@@ -2,9 +2,12 @@ import { bgPatternSvg } from './bgPattern';
 import type { Instance, PatternLayout, RenderOptions } from '../../types';
 import { ELEMENTS_BY_ID } from '../../data/elements';
 import { groupBounds } from '../geometry/bounds';
+import { procLayer } from '../procedural';
 
 const esc = (v: string) => v.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const EPS = 1e-3;
+/** Part colours may be a palette token: $0..$3 = palette colour, $b = tile background. */
+const tok = (v: string | undefined, o: RenderOptions) => (v && v[0] === '$' ? (v === '$b' ? o.bg : o.colors[+v.slice(1) % o.colors.length]) : v);
 
 export function instTransform(inst: Instance, ox: number, oy: number): string {
   const sx = inst.flip ? -inst.s : inst.s;
@@ -18,8 +21,8 @@ export function instanceGroup(inst: Instance, id: string, ox: number, oy: number
   const parts = el.parts.map(p => {
     const t = p.transform ? ` transform="${p.transform}"` : '';
     if (p.role === 'line')
-      return `<path d="${p.d}"${t} fill="none" stroke="${esc(p.stroke ?? o.outline)}" stroke-width="${2.5 * (p.w ?? 1)}" stroke-linecap="round" stroke-linejoin="round"/>`;
-    const fill = p.fill ?? (p.role === 'primary' ? fills[0] : p.role === 'secondary' ? fills[1] : fills[2]);
+      return `<path d="${p.d}"${t} fill="none" stroke="${esc(tok(p.stroke, o) ?? o.outline)}" stroke-width="${2.5 * (p.w ?? 1)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const fill = tok(p.fill, o) ?? (p.role === 'primary' ? fills[0] : p.role === 'secondary' ? fills[1] : fills[2]);
     return `<path d="${p.d}"${t} fill="${esc(fill)}"/>`;
   });
   return `<g id="${id}" data-element="${el.id}" transform="${instTransform(inst, ox, oy)}">${parts.join('')}</g>`;
@@ -39,7 +42,7 @@ export function buildTileBody(layout: PatternLayout, o: RenderOptions): string {
   }
   const bg = o.transparent ? '' : `<rect id="background" width="${w}" height="${h}" fill="${esc(o.bg)}"/>`;
   const tex = o.bgPattern && /^#[0-9a-fA-F]{6}$/.test(o.bgPattern.color) ? bgPatternSvg(o.bgPattern, w, h) : '';
-  return `<defs><clipPath id="tile"><rect width="${w}" height="${h}"/></clipPath></defs>${bg}${tex}<g id="pattern" clip-path="url(#tile)">${body.join('')}</g>`;
+  return `<defs><clipPath id="tile"><rect width="${w}" height="${h}"/></clipPath></defs>${bg}${tex}${procLayer(layout.settings, o)}<g id="pattern" clip-path="url(#tile)">${body.join('')}</g>`;
 }
 
 export function buildSvg(layout: PatternLayout, o: RenderOptions, title = 'Seamless pattern tile'): string {

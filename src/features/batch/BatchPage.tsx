@@ -40,7 +40,7 @@ export default function BatchPage({ work }: { work: Project }) {
         <select className={input} value={source} onChange={e => setSource(e.target.value as Source)}>
           <option value="variations">New seeds of the current pattern</option>
           <option value="saved">All saved projects</option>
-          <option value="categories">One pattern per category (20)</option>
+          <option value="categories">One pattern per category ({CATEGORIES.length})</option>
         </select>
       </Field>
       {source === 'variations' && <Field label={`Variations: ${n}`}><input type="range" min={1} max={50} value={n} onChange={e => setN(+e.target.value)} className="w-full" /></Field>}

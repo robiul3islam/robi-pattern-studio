@@ -17,12 +17,15 @@ export function checkQuality(svg: string, w: number, h: number): QualityReport {
     `${w} x ${h}px. Stock sites prefer big rasters: export PNG at 2x-4x, or use SVG.`);
 
   const tops = [...svg.matchAll(/<g id="e(\d+)" data-element="[^"]*" transform="translate\(([-\d.]+) ([-\d.]+)\)/g)];
-  add('count', 'Element count', tops.length >= 8 ? 'pass' : tops.length >= 4 ? 'warn' : 'fail', `${tops.length} elements in the tile.`);
+  const proc = svg.includes('id="procedural"');
+  if (proc) add('count', 'Pattern geometry', 'pass', 'Full-tile procedural pattern: periodic by construction.');
+  else add('count', 'Element count', tops.length >= 8 ? 'pass' : tops.length >= 4 ? 'warn' : 'fail', `${tops.length} elements in the tile.`);
 
   const cells = new Set<number>();
   for (const m of tops) cells.add(Math.min(3, Math.floor(+m[3] / (h / 4))) * 4 + Math.min(3, Math.floor(+m[2] / (w / 4))));
   const empty = 16 - cells.size;
-  add('balance', 'Even coverage', tops.length === 0 ? 'fail' : empty === 0 ? 'pass' : empty <= 3 ? 'warn' : 'fail',
+  if (proc) add('balance', 'Even coverage', 'pass', 'Procedural lattice covers the whole tile.');
+  else add('balance', 'Even coverage', tops.length === 0 ? 'fail' : empty === 0 ? 'pass' : empty <= 3 ? 'warn' : 'fail',
     empty === 0 ? 'All 16 zones of the tile have elements.' : `${empty} of 16 zones have no element centre: gaps or clumps likely.`);
 
   const fills = new Set([...svg.matchAll(/fill="(#[0-9a-fA-F]{3,8})"/g)].map(m => m[1].toLowerCase()));

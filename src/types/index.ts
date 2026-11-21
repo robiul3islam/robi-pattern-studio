@@ -14,6 +14,10 @@ export interface LayoutSettings {
   elements?: string[];
   /** Designer-style composition: per-motif size (% of tile width) and frequency weight. */
   elementSpec?: Record<string, { size: number; weight: number }>;
+  /** Procedural full-tile layer (halftone, weave, swirl, knit...). Periodic by construction. */
+  proc?: string;
+  /** Parameter values of the procedural layer. */
+  pv?: Record<string, number>;
 }
 export interface Instance { n: number; el: string; x: number; y: number; s: number; r: number; flip: boolean; c: [number, number, number]; }
 export interface PatternLayout { settings: LayoutSettings; instances: Instance[]; w: number; h: number; }
@@ -23,4 +27,10 @@ export interface RenderOptions { colors: string[]; bg: string; outline: string; 
 export interface CategoryConfig {
   elements: string[]; palette: string; mode: PatternMode; size: number; count: number;
   density: number; spacing: number; rotation: number; randomness: number;
+  /** Procedural styles this category can render (first one is the default). */
+  procs?: string[];
+  /** Best default palette for each procedural style. */
+  procPalette?: Record<string, string>;
+  /** Designer-style composition: heroes + fillers (size = % of tile width, weight = how often). */
+  spec?: Record<string, { size: number; weight: number }>;
 }

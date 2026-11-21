@@ -62,7 +62,7 @@ describe('ai', () => {
     const s = parseSpec('{"categoryId":"x","elements":[]}'); expect(s.categoryId).toBe('geometric'); expect(s.elements.length).toBeGreaterThan(0);
   });
   it('local spec: christmas prompt picks holiday + hex colours', () => {
-    const s = localSpec('christmas pattern with holly, colors #b91c1c #166534'); expect(s.categoryId).toBe('seasonal-holiday');
+    const s = localSpec('christmas pattern with holly, colors #b91c1c #166534'); expect(['seasonal-holiday', 'christmas-holly']).toContain(s.categoryId);
     expect(s.elements).toContain('holly'); expect(s.colors).toEqual(['#b91c1c', '#166534']);
   });
   it('spec renders with custom elements and 5 colours', () => {
