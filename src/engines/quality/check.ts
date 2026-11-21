@@ -26,7 +26,7 @@ export function checkQuality(svg: string, w: number, h: number): QualityReport {
     empty === 0 ? 'All 16 zones of the tile have elements.' : `${empty} of 16 zones have no element centre: gaps or clumps likely.`);
 
   const fills = new Set([...svg.matchAll(/fill="(#[0-9a-fA-F]{3,8})"/g)].map(m => m[1].toLowerCase()));
-  add('colors', 'Colour count', fills.size <= 8 ? 'pass' : fills.size <= 12 ? 'warn' : 'fail', `${fills.size} distinct fill colours.`);
+  add('colors', 'Colour count', fills.size <= 14 ? 'pass' : fills.size <= 24 ? 'warn' : 'fail', `${fills.size} distinct fill colours.`);
 
   const bad = /<image\b|<text\b|<foreignObject\b|<filter\b/.test(svg);
   add('clean', 'Clean vector', bad ? 'fail' : 'pass', bad ? 'Contains raster, text or filter nodes.' : 'Only plain vector paths.');

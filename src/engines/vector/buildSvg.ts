@@ -18,7 +18,7 @@ export function instanceGroup(inst: Instance, id: string, ox: number, oy: number
     const t = p.transform ? ` transform="${p.transform}"` : '';
     if (p.role === 'line')
       return `<path d="${p.d}"${t} fill="none" stroke="${esc(o.outline)}" stroke-width="${2.5 * (p.w ?? 1)}" stroke-linecap="round" stroke-linejoin="round"/>`;
-    const fill = p.role === 'primary' ? fills[0] : p.role === 'secondary' ? fills[1] : fills[2];
+    const fill = p.fill ?? (p.role === 'primary' ? fills[0] : p.role === 'secondary' ? fills[1] : fills[2]);
     return `<path d="${p.d}"${t} fill="${esc(fill)}"/>`;
   });
   return `<g id="${id}" data-element="${el.id}" transform="${instTransform(inst, ox, oy)}">${parts.join('')}</g>`;

@@ -12,22 +12,26 @@ const MODES: PatternMode[] = ['grid', 'scattered', 'organic', 'structured', 'den
 const SYMS: Symmetry[] = ['none', 'horizontal', 'vertical', 'both'];
 
 export interface Spec {
-  name?: string; summary?: string; categoryId: string; elements: string[]; customElements: VecElement[]; colors: string[]; background: string;
+  name?: string; summary?: string; categoryId: string; elements: string[]; customElements: VecElement[]; elementSpec: Record<string, { size: number; weight: number }>; colors: string[]; background: string;
   mode: PatternMode; count: number; size: number; density: number; spacing: number; rotation: number; randomness: number; symmetry: Symmetry;
 }
 
-export const SYSTEM = `You are a pattern designer. Convert the user's description into JSON for a seamless vector pattern engine. Follow the description EXACTLY: every subject, colour, style and layout it names must appear, and nothing it excludes.
+const EXAMPLE = `{"name":"Gift box","size":26,"weight":3,"parts":[{"d":"M-48,-14 H48 V34 H-48 Z","fill":"#c9444a"},{"d":"M-48,-14 H48 V-4 H-48 Z","fill":"#a8363c"},{"d":"M-7,-14 H7 V34 H-7 Z","fill":"#f4e4c1"},{"d":"M0,-14 C-30,-52 -52,-30 0,-14 Z","fill":"#f4e4c1","mirror":true},{"d":"M-48,-14 H48","role":"line","stroke":"#8f2b30","w":0.8}]}`;
+
+export const SYSTEM = `You are a professional surface-pattern designer making seamless wrapping-paper / textile tiles in the style of modern flat vector stock illustration. Convert the user's description (and the reference image, if one is attached) into JSON for a pattern engine. Reproduce the description EXACTLY: every subject, colour, mood and arrangement it names, and nothing it excludes. If an image is attached, copy its look: same kinds of motifs, same palette, same background, same density and arrangement.
 Return ONLY one JSON object with these keys:
-- "summary": one sentence saying what you will make.
+- "summary": one sentence describing what you will make.
 - "name": short title.
-- "customElements": 2 to 6 motifs YOU DRAW with SVG paths, one for each distinct subject in the description (for example "bengal tiger", "bamboo", "lotus"). Always draw the named subjects yourself instead of approximating them with library shapes.
-  Each motif: {"name": string, "parts": [{"d": path, "role": "primary"|"secondary"|"accent"|"line", "mirror": boolean}]}.
-  Drawing rules: flat vector style, clear recognisable silhouette, 3 to 10 parts layered back to front (big body shapes first, details on top). Any coordinates are fine, they are rescaled, but keep one consistent coordinate system and y points DOWN.
-  Allowed path commands only: M L H V C S Q T A Z. Filled shapes must be closed with Z. role "line" is an outline stroke with no fill (use for veins, stems, whiskers). "mirror": true adds a left-right mirrored copy, so draw only the right half of symmetric things. primary/secondary/accent are filled with palette colours.
-- "elements": 0 to 4 ids of simple FILLER shapes from this library, only if the description wants fillers (dots, leaves, stars): ${ELEMENTS.map(e => e.id).join(', ')}. Use [] otherwise.
+- "customElements": 5 to 10 motifs that YOU DRAW with SVG paths. Include 3 to 6 HERO motifs (the main subjects named in the description, size 18 to 34) and 2 to 4 tiny FILLER motifs (stars, hearts, sparkles, dots, small leaves; size 3 to 7). Always draw the named subjects yourself, never approximate them.
+  Each motif: {"name": string, "size": number (its largest dimension as % of the tile width), "weight": 1-4 (how often it repeats), "parts": [...]}.
+  Each part: {"d": path, "fill": "#rrggbb", "mirror": boolean} or an outline {"d": path, "role": "line", "stroke": "#rrggbb", "w": 0.5-2}.
+  Quality rules: give EVERY filled part its own explicit fill HEX. Build depth with tones: a base colour, a darker shade for shadow sides and a lighter tint for highlights. Add the details that make the subject recognisable (ribbon stripes, dots, stars, veins, folds). Use 8 to 20 parts per hero motif, layered back to front. Thin darker outline parts (role "line") are welcome. "mirror": true adds a left-right mirrored copy, so draw only the right half of symmetric shapes. Colours must come from the description's palette plus its darker and lighter tones.
+  Path rules: allowed commands M L H V C S Q T A Z only, each path under 500 characters, filled shapes closed with Z, y points DOWN, one consistent coordinate system per motif (any scale: it is auto-fitted and centred).
+  Example of one hero motif: ${EXAMPLE}
+- "elements": [] (library ids are optional fillers; use [] unless the description asks for simple library shapes). Library ids: ${ELEMENTS.map(e => e.id).join(', ')}.
 - "categoryId": best fit from: ${CATEGORIES.map(c => c.id).join(', ')}.
-- "colors": exactly 4 HEX motif colours; "background": 1 HEX colour. Use any colours the description names or gives as HEX EXACTLY.
-- "mode" one of ${MODES.join(', ')}; "count" 8-120; "size" 40-200; "density" 0-100; "spacing" 0.5-2; "rotation" 0-180 (max random tilt; use 0 for upright); "randomness" 0-100; "symmetry" one of ${SYMS.join(', ')}.`;
+- "colors": exactly 4 HEX palette colours and "background": 1 HEX. Use any colours the description gives EXACTLY.
+- "mode": "halfdrop" | "brick" | "grid" (arrangement of the hero motifs; default halfdrop); "spacing" 0.9-1.4 (1 = tight); "density" 0-100 (how many fillers; 50 normal); "rotation" 0-15 (max random tilt in degrees, 0 = upright); "randomness" 0-60.`;
 
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d);
 const hexesIn = (t: string) => [...new Set((t.match(/#[0-9a-fA-F]{6}\b/g) ?? []).map(h => h.toLowerCase()))];
@@ -41,16 +45,21 @@ export function parseSpec(text: string): Spec {
   const categoryId = CATEGORIES.some(c => c.id === o.categoryId) ? (o.categoryId as string) : 'geometric';
   const cfg = CATEGORY_CONFIG[categoryId];
   const lib = [...new Set((Array.isArray(o.elements) ? o.elements : []).filter((e): e is string => typeof e === 'string' && !!ELEMENTS_BY_ID[e] && !e.startsWith('ai-')))].slice(0, 4);
-  const custom = (Array.isArray(o.customElements) ? o.customElements : []).slice(0, 6).map(buildMotif).filter((e): e is VecElement => !!e);
+  const custom: VecElement[] = [], elementSpec: Spec['elementSpec'] = {};
+  for (const raw of (Array.isArray(o.customElements) ? o.customElements : []).slice(0, 10)) {
+    const e = buildMotif(raw); if (!e) continue;
+    custom.push(e); elementSpec[e.id] = { size: num((raw as Record<string, unknown>).size, 2, 45, 20), weight: Math.round(num((raw as Record<string, unknown>).weight, 1, 4, 2)) };
+  }
+  for (const id of lib) elementSpec[id] = { size: 4, weight: 2 };
   const cols = (Array.isArray(o.colors) ? o.colors : []).filter((c): c is string => typeof c === 'string' && isHex(c));
   const pool = [...custom.map(c => c.id), ...lib];
   return {
     name: typeof o.name === 'string' ? o.name.slice(0, 60) : undefined, summary: typeof o.summary === 'string' ? o.summary.slice(0, 300) : undefined, categoryId,
-    elements: pool.length ? pool : cfg.elements, customElements: custom,
+    elements: pool.length ? pool : cfg.elements, customElements: custom, elementSpec,
     colors: cols.slice(0, 4), background: typeof o.background === 'string' && isHex(o.background) ? o.background : '',
-    mode: MODES.includes(o.mode as PatternMode) ? (o.mode as PatternMode) : cfg.mode,
+    mode: MODES.includes(o.mode as PatternMode) ? (o.mode as PatternMode) : custom.length ? 'halfdrop' : cfg.mode,
     count: num(o.count, 8, 120, cfg.count), size: num(o.size, 30, 200, cfg.size), density: num(o.density, 0, 100, cfg.density),
-    spacing: num(o.spacing, 0.5, 2, cfg.spacing), rotation: num(o.rotation, 0, 180, cfg.rotation), randomness: num(o.randomness, 0, 100, cfg.randomness),
+    spacing: num(o.spacing, 0.5, 2, custom.length ? 1 : cfg.spacing), rotation: num(o.rotation, 0, 180, custom.length ? 6 : cfg.rotation), randomness: num(o.randomness, 0, 100, custom.length ? 25 : cfg.randomness),
     symmetry: SYMS.includes(o.symmetry as Symmetry) ? (o.symmetry as Symmetry) : 'none',
   };
 }
@@ -73,7 +82,7 @@ export function localSpec(prompt: string): Spec {
   const hit = ELEMENTS.filter(e => t.includes(e.id) || t.includes(e.name.toLowerCase())).map(e => e.id);
   const cfg = CATEGORY_CONFIG[categoryId];
   return forceHex(prompt, {
-    categoryId, elements: hit.length ? hit.slice(0, 10) : cfg.elements, customElements: [], colors: [], background: '',
+    categoryId, elements: hit.length ? hit.slice(0, 10) : cfg.elements, customElements: [], elementSpec: {}, colors: [], background: '',
     mode: cfg.mode, count: cfg.count, size: cfg.size, density: cfg.density, spacing: cfg.spacing, rotation: cfg.rotation, randomness: cfg.randomness, symmetry: 'none',
   });
 }
@@ -85,11 +94,11 @@ export function specToProject(spec: Spec, seed: number, name: string): Project {
   spec.colors.forEach((c, i) => { colors[i] = c; });
   for (let i = spec.colors.length; spec.colors.length && i < 4; i++) colors[i] = spec.colors[i % spec.colors.length];
   colors[4] = spec.background || base.bg;
-  const { count, size, density, spacing, rotation, randomness, mode, symmetry, elements } = spec;
-  return { ...base, name: spec.name || name, colors, bg: colors[4], customElements: spec.customElements, settings: { ...base.settings, count, size, density, spacing, rotation, randomness, mode, symmetry, elements } };
+  const { count, size, density, spacing, rotation, randomness, mode, symmetry, elements, elementSpec } = spec;
+  return { ...base, name: spec.name || name, colors, bg: colors[4], customElements: spec.customElements, settings: { ...base.settings, count, size, density, spacing, rotation, randomness, mode, symmetry, elements, elementSpec: Object.keys(elementSpec).length ? elementSpec : undefined } };
 }
 
-export interface Turn { role: 'user' | 'model'; text: string; }
+export interface Turn { role: 'user' | 'model'; text: string; image?: { mime: string; data: string }; }
 export interface AiResult { spec: Spec; raw: string; model: string; }
 
 async function callOnce(key: string, model: string, turns: Turn[]): Promise<string> {
@@ -99,11 +108,12 @@ async function callOnce(key: string, model: string, turns: Turn[]): Promise<stri
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM }] },
-        contents: turns.map(t => ({ role: t.role, parts: [{ text: t.text }] })),
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.6, maxOutputTokens: 16384 },
+        contents: turns.map(t => ({ role: t.role, parts: [...(t.image ? [{ inlineData: { mimeType: t.image.mime, data: t.image.data } }] : []), { text: t.text }] })),
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.6, maxOutputTokens: 32768 },
       }),
+      signal: AbortSignal.timeout(150000),
     });
-  } catch { throw Object.assign(new Error('Network error. Check your internet connection.'), { fatal: true }); }
+  } catch (e) { throw Object.assign(new Error((e as Error).name === 'TimeoutError' ? 'Gemini took too long (150s). Try again.' : 'Network error. Check your internet connection.'), { fatal: (e as Error).name !== 'TimeoutError' }); }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const m = data?.error?.message ?? res.statusText;
@@ -117,8 +127,8 @@ async function callOnce(key: string, model: string, turns: Turn[]): Promise<stri
 }
 
 /** Tries the chosen model first, then the other models, until one gives a usable answer. */
-export async function askGemini(key: string, model: string, prompt: string, history: Turn[] = []): Promise<AiResult> {
-  const turns: Turn[] = [...history, { role: 'user', text: prompt }];
+export async function askGemini(key: string, model: string, prompt: string, history: Turn[] = [], image?: Turn['image']): Promise<AiResult> {
+  const turns: Turn[] = [...history, { role: 'user', text: prompt, image }];
   const order = [model, ...MODELS.filter(m => m !== model)];
   let last = new Error('No model answered.');
   for (const m of order) {

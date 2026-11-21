@@ -4,7 +4,7 @@ export type PageId = 'dashboard' | 'generator' | 'prompt' | 'categories' | 'colo
 export interface NavItem { id: PageId; label: string; phase: number; }
 
 export type Role = 'primary' | 'secondary' | 'accent' | 'line';
-export interface Part { d: string; role: Role; transform?: string; w?: number; }
+export interface Part { d: string; role: Role; transform?: string; w?: number; fill?: string; stroke?: string; }
 export interface VecElement { id: string; name: string; parts: Part[]; }
 export type PatternMode = 'grid' | 'scattered' | 'organic' | 'structured' | 'dense' | 'minimal' | 'mirror' | 'halfdrop' | 'brick';
 export type Symmetry = 'none' | 'horizontal' | 'vertical' | 'both';
@@ -12,6 +12,8 @@ export interface LayoutSettings {
   categoryId: string; mode: PatternMode; count: number; size: number; density: number;
   spacing: number; rotation: number; randomness: number; symmetry: Symmetry; w: number; h: number; seed: number;
   elements?: string[];
+  /** Designer-style composition: per-motif size (% of tile width) and frequency weight. */
+  elementSpec?: Record<string, { size: number; weight: number }>;
 }
 export interface Instance { n: number; el: string; x: number; y: number; s: number; r: number; flip: boolean; c: [number, number, number]; }
 export interface PatternLayout { settings: LayoutSettings; instances: Instance[]; w: number; h: number; }

@@ -2,3 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 body { @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100; font-family: Inter, system-ui, sans-serif; }
+
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+.dark select, .dark option, .dark optgroup { background-color: #0f172a; color: #f1f5f9; }
+.dark input, .dark textarea { color: #f1f5f9; }
+.dark input::placeholder, .dark textarea::placeholder { color: #94a3b8; }
+.dark .text-slate-500 { color: #94a3b8; }
+.dark a { color: #a5b4fc; }

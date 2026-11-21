@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { askGemini, localSpec, MODELS, specToProject, type Spec, type Turn } from '../../engines/ai/gemini';
 import { bump, layoutOf, newId, renderSvg, safeGet, safeSet, upsertProject, type Project } from '../../engines/project/store';
 import { buildTiledPreview, elementThumb } from '../../engines/vector/buildSvg';
@@ -18,9 +18,26 @@ export default function AiPage({ work, setWork, go, initialPrompt }: { work: Pro
   const [err, setErr] = useState('');
   const [spec, setSpec] = useState<Spec | null>(null);
   const [hist, setHist] = useState<Turn[]>([]);
+  const [img, setImg] = useState<{ mime: string; data: string; url: string } | null>(null);
+  const [rep, setRep] = useState(2);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const loadImg = (f?: File) => {
+    if (!f) return;
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, 1024 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      c.getContext('2d')!.drawImage(im, 0, 0, c.width, c.height);
+      const data = c.toDataURL('image/jpeg', 0.85);
+      setImg({ mime: 'image/jpeg', data: data.split(',')[1], url: data });
+      URL.revokeObjectURL(url);
+    };
+    im.onerror = () => setErr('Could not read that image.');
+    im.src = url;
+  };
   const preview = useMemo(() => {
-    try { return buildTiledPreview(layoutOf(work), { colors: work.colors, bg: work.bg, outline: work.outline }, 3, false); } catch { return ''; }
-  }, [work]);
+    try { return buildTiledPreview(layoutOf(work), { colors: work.colors, bg: work.bg, outline: work.outline }, rep, false); } catch { return ''; }
+  }, [work, rep]);
 
   const run = async (text: string, history: Turn[]) => {
     if (!text.trim()) { setErr('Write or paste a prompt first.'); return; }
@@ -29,8 +46,8 @@ export default function AiPage({ work, setWork, go, initialPrompt }: { work: Pro
       const wantAi = useAi && key.trim();
       let sp: Spec, used = '';
       if (wantAi) {
-        const r = await askGemini(key.trim(), model, text, history); sp = r.spec; used = r.model;
-        setHist([...history, { role: 'user', text }, { role: 'model', text: r.raw }]);
+        const r = await askGemini(key.trim(), model, text, history, history.length ? undefined : img ? { mime: img.mime, data: img.data } : undefined); sp = r.spec; used = r.model;
+        setHist([...history, { role: 'user', text, image: history.length ? undefined : img ? { mime: img.mime, data: img.data } : undefined }, { role: 'model', text: r.raw }]);
       } else { sp = localSpec(prompt); setHist([]); }
       const p = specToProject(sp, Math.floor(Math.random() * 1e9), `ai-${sp.categoryId}`);
       renderSvg(p); // fail early if it cannot render
@@ -52,8 +69,16 @@ export default function AiPage({ work, setWork, go, initialPrompt }: { work: Pro
             <textarea rows={7} value={prompt} onChange={e => setPrompt(e.target.value)} className={input}
               placeholder="e.g. christmas pattern with snowflakes, pine trees and holly, red green gold on cream" />
           </Field>
+          <div className="space-y-1">
+            <div className="text-xs">Reference image (optional): the AI copies its look</div>
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={e => { loadImg(e.target.files?.[0]); e.target.value = ''; }} />
+            <div className="flex items-center gap-2">
+              <button className={btn} onClick={() => fileRef.current?.click()}>{img ? 'Change image' : 'Add image'}</button>
+              {img && <><img src={img.url} alt="Reference" className="h-12 w-12 rounded border object-cover" /><button className="text-xs underline" onClick={() => setImg(null)}>Remove</button></>}
+            </div>
+          </div>
           <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={useAi} onChange={e => setUseAi(e.target.checked)} /> Use Gemini AI (draws your exact subjects)</label>
-          <button className={`${btnPrimary} w-full`} onClick={() => run(prompt, [])} disabled={busy}>{busy ? 'Generating...' : 'Generate'}</button>
+          <button className={`${btnPrimary} w-full`} onClick={() => run(prompt, [])} disabled={busy}>{busy ? 'Drawing motifs, 20-90 seconds...' : 'Generate'}</button>
           {err && <p role="alert" className="text-sm text-red-500">{err}</p>}
           {msg && <p role="status" className="text-sm text-slate-500">{msg}</p>}
         </section>
@@ -82,6 +107,7 @@ export default function AiPage({ work, setWork, go, initialPrompt }: { work: Pro
         <div className="mx-auto w-full max-w-xl overflow-hidden rounded-xl border bg-white dark:border-slate-700" style={{ aspectRatio: `${work.settings.w} / ${work.settings.h}` }} dangerouslySetInnerHTML={{ __html: preview }} />
         <div className="flex flex-wrap gap-2">
           <button className={btn} onClick={variation}>New variation</button>
+          {[1, 2, 3].map(n => <button key={n} className={`${btn} ${rep === n ? 'bg-brand-500 text-white' : ''}`} onClick={() => setRep(n)}>{n}x{n}</button>)}
           <button className={btn} onClick={() => go('generator')}>Open in Generator</button>
           <button className={btn} onClick={() => go('editor')}>Edit</button>
           <button className={btn} onClick={() => go('export')}>Export</button>

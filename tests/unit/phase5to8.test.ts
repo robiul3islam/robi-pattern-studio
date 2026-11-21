@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allCategories, defaultProject, renderSvg, setCustomPalette, variations } from '../../src/engines/project/store';
+import { allCategories, defaultProject, layoutOf, renderSvg, setCustomPalette, variations } from '../../src/engines/project/store';
 import { checkQuality } from '../../src/engines/quality/check';
 import { buildMetadata, colorName, SITES } from '../../src/engines/metadata/build';
 import { pngSize } from '../../src/engines/export/png';
@@ -93,5 +93,22 @@ describe('ai motifs', () => {
   it('prompt hex colours override model colours', () => {
     const s = forceHex('use #ff0000 #00ff00 #0000ff #ffff00 on #123456', { ...localSpec('x'), colors: ['#111111'], background: '#fff' });
     expect(s.colors).toEqual(['#ff0000', '#00ff00', '#0000ff', '#ffff00']); expect(s.background).toBe('#123456');
+  });
+});
+
+describe('composed layout', () => {
+  const gift = buildMotif({ name: 'Gift', parts: [{ d: 'M-48,-14 H48 V34 H-48 Z', fill: '#c9444a' }, { d: 'M-7,-14 H7 V34 H-7 Z', fill: '#f4e4c1' }] })!;
+  const star = buildMotif({ name: 'Star', parts: [{ d: 'M0,-10 L3,-3 L10,-3 L4,2 L6,9 L0,5 L-6,9 L-4,2 L-10,-3 L-3,-3 Z', fill: '#f2b84b' }] })!;
+  it('big heroes on lattice + fillers, fixed colours, seamless', () => {
+    const p = defaultProject('seasonal-holiday', undefined, 3);
+    p.customElements = [gift, star];
+    p.settings = { ...p.settings, elements: [gift.id, star.id], mode: 'halfdrop', rotation: 5, randomness: 20, elementSpec: { [gift.id]: { size: 26, weight: 2 }, [star.id]: { size: 4, weight: 2 } } };
+    const lay = layoutOf(p);
+    const heroes = lay.instances.filter(i => i.el === gift.id), fill = lay.instances.filter(i => i.el === star.id);
+    expect(heroes.length).toBeGreaterThanOrEqual(6); expect(fill.length).toBeGreaterThan(3);
+    expect(lay.instances.map(i => i.n)).toEqual(lay.instances.map((_, i) => i));
+    const svg = renderSvg(p); expect(svg).toContain('fill="#c9444a"'); expect(svg).toContain('fill="#f2b84b"');
+    expect(validateSeamless(svg, 1000, 1000).ok).toBe(true);
+    expect(renderSvg(p)).toBe(svg);
   });
 });
